@@ -136,6 +136,7 @@
           <h3 class="text-sm font-medium text-red-800" id="errorTitle">เกิดข้อผิดพลาด</h3>
           <div class="mt-2 text-sm text-red-700">
             <p id="errorMessage">ไม่สามารถเชื่อมต่อกับ LINE ได้ กรุณาลองใหม่อีกครั้ง</p>
+            <p id="errorDetails" class="text-xs mt-1 hidden"></p>
           </div>
           <div class="mt-4">
             <button id="retryButton" class="bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
@@ -206,17 +207,17 @@
           <!-- File Upload -->
           <div class="mb-6">
             <label class="block text-gray-700 text-sm font-bold mb-2">
-              <i class="fas fa-file-upload text-primary mr-1"></i> อัปโหลดไฟล์ (สูงสุด 5 ไฟล์)
+              <i class="fas fa-file-upload text-primary mr-1"></i> อัปโหลดไฟล์ (สูงสุด 3 ไฟล์, ไฟล์ละไม่เกิน 2MB)
             </label>
             <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer" id="dropZone">
               <div class="space-y-1 text-center">
                 <div class="flex text-sm text-gray-600 justify-center">
                   <label class="relative cursor-pointer rounded-md font-medium text-primary hover:text-blue-500">
                     <span>คลิกเพื่อเลือกไฟล์</span>
-                    <input id="fileInput" type="file" class="sr-only" multiple accept="image/*, .pdf, .doc, .docx, .xls, .xlsx" max="5">
+                    <input id="fileInput" type="file" class="sr-only" multiple accept="image/*, .pdf, .doc, .docx, .xls, .xlsx" max="3">
                   </label>
                 </div>
-                <p class="text-xs text-gray-500">PNG, JPG, PDF, DOC, XLS ขึ้นไป (ขนาดไม่เกิน 5MB)</p>
+                <p class="text-xs text-gray-500">PNG, JPG, PDF, DOC, XLS (ขนาดไม่เกิน 2MB)</p>
                 <p class="text-xs text-gray-500 mt-2">หรือลากไฟล์มาวางที่นี่</p>
               </div>
             </div>
@@ -244,6 +245,7 @@
       <div class="bg-white rounded-xl p-8 flex flex-col items-center">
         <div class="w-16 h-16 border-t-4 border-primary border-solid rounded-full animate-spin mb-4"></div>
         <p class="text-gray-700 font-medium">กำลังประมวลผลข้อมูล...</p>
+        <p class="text-gray-500 text-sm mt-2">กรุณารอสักครู่</p>
       </div>
     </div>
     
@@ -281,6 +283,7 @@
   <script>
     // ตัวแปรเก็บไฟล์ที่เลือก
     let selectedFiles = [];
+    let isSubmitting = false; // ป้องกันการส่งซ้ำ
     
     // เริ่มต้น LIFF App
     async function initializeLiff() {
@@ -301,7 +304,7 @@
         
       } catch (error) {
         console.error('LIFF Initialization Error:', error);
-        showError('ไม่สามารถเชื่อมต่อกับ LINE ได้', error.message);
+        showError('ไม่สามารถเชื่อมต่อกับ LINE ได้', 'กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต', error.message);
       }
     }
     
@@ -360,17 +363,17 @@
       }
       
       function handleFiles(files) {
-        // ตรวจสอบจำนวนไฟล์ (ไม่เกิน 5)
-        if (selectedFiles.length + files.length > 5) {
-          showError('อัปโหลดได้สูงสุด 5 ไฟล์', 'กรุณาลดจำนวนไฟล์ลง');
+        // ตรวจสอบจำนวนไฟล์ (ลดเหลือ 3 ไฟล์)
+        if (selectedFiles.length + files.length > 3) {
+          showError('อัปโหลดได้สูงสุด 3 ไฟล์', 'กรุณาลดจำนวนไฟล์ลง');
           return;
         }
         
-        // ตรวจสอบขนาดไฟล์ (ไม่เกิน 5MB ต่อไฟล์)
+        // ตรวจสอบขนาดไฟล์ (ลดเหลือ 2MB ต่อไฟล์)
         for (let i = 0; i < files.length; i++) {
           const file = files[i];
-          if (file.size > 5 * 1024 * 1024) {
-            showError(`ไฟล์ ${file.name} มีขนาดใหญ่เกิน 5MB`, 'กรุณาเลือกไฟล์ที่มีขนาดเล็กกว่า');
+          if (file.size > 2 * 1024 * 1024) {
+            showError(`ไฟล์ ${file.name} มีขนาดใหญ่เกิน 2MB`, 'กรุณาเลือกไฟล์ที่มีขนาดเล็กกว่า');
             return;
           }
         }
@@ -464,28 +467,47 @@
       return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
     
-    // แปลงไฟล์เป็น base64 (Promise based) - แก้ไขแล้ว
+    // แปลงไฟล์เป็น base64 แบบ Chunked เพื่อประสิทธิภาพที่ดีขึ้น
     function fileToBase64(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = () => {
-          // แยกส่วนข้อมูล base64 ออกจากส่วน header
-          const base64Data = reader.result.split(',')[1];
-          if (!base64Data) {
-            reject(new Error('Failed to convert file to base64'));
-            return;
+        
+        reader.onload = function() {
+          try {
+            const base64String = reader.result;
+            if (!base64String) {
+              reject(new Error('ไม่สามารถอ่านไฟล์ได้'));
+              return;
+            }
+            
+            // แยกส่วนข้อมูล base64 ออกจากส่วน header
+            const base64Data = base64String.split(',')[1];
+            if (!base64Data) {
+              reject(new Error('รูปแบบไฟล์ไม่ถูกต้อง'));
+              return;
+            }
+            
+            resolve({
+              fileName: file.name,
+              mimeType: file.type,
+              size: file.size,
+              data: base64Data
+            });
+          } catch (error) {
+            console.error('Error processing file:', error);
+            reject(new Error('เกิดข้อผิดพลาดในการประมวลผลไฟล์'));
           }
-          resolve({
-            fileName: file.name,
-            mimeType: file.type,
-            data: base64Data
-          });
         };
-        reader.onerror = (error) => {
-          console.error('FileReader error:', error);
-          reject(new Error('เกิดข้อผิดพลาดในการอ่านไฟล์'));
+        
+        reader.onerror = function() {
+          reject(new Error('ไม่สามารถอ่านไฟล์ได้'));
         };
-        reader.onabort = () => reject(new Error('การอ่านไฟล์ถูกยกเลิก'));
+        
+        reader.onabort = function() {
+          reject(new Error('การอ่านไฟล์ถูกยกเลิก'));
+        };
+        
+        // อ่านไฟล์เป็น data URL
         reader.readAsDataURL(file);
       });
     }
@@ -542,7 +564,7 @@
         
       } catch (error) {
         console.error('Profile Error:', error);
-        showError('ไม่สามารถดึงข้อมูลโปรไฟล์ได้', error.message);
+        showError('ไม่สามารถดึงข้อมูลโปรไฟล์ได้', 'กรุณาลองใหม่อีกครั้ง', error.message);
       }
     }
     
@@ -551,12 +573,18 @@
       try {
         const response = await fetchWithTimeout('https://script.google.com/macros/s/AKfycbwpjzb0BRFJrSL0YZwcrIgse5uNbdDoJ5GaEWxbX8HhPTg1aHEeaJgBVURHbVrahUa3/exec', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json'
+          },
           body: JSON.stringify({
             action: 'getUserData',
             userId: userId
           })
-        });
+        }, 15000); // ลด timeout เหลือ 15 วินาที
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
         
         const data = await response.json();
         
@@ -589,14 +617,20 @@
         document.getElementById('loadingIndicator').classList.add('hidden');
       } catch (error) {
         console.error('Login Error:', error);
-        showError('ไม่สามารถล็อกอินได้', error.message);
+        showError('ไม่สามารถล็อกอินได้', 'กรุณาลองใหม่อีกครั้ง', error.message);
         document.getElementById('loadingIndicator').classList.add('hidden');
       }
     });
     
-    // จัดการการส่งฟอร์ม - แก้ไขส่วนสำคัญที่น่าจะทำให้เกิดปัญหา "Load failed"
+    // จัดการการส่งฟอร์ม - แก้ไขหลายจุดสำคัญ
     document.getElementById('registrationForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      
+      // ป้องกันการส่งซ้ำ
+      if (isSubmitting) {
+        console.log('Form is already being submitted');
+        return;
+      }
       
       // ตรวจสอบความถูกต้องของข้อมูล
       const name = document.getElementById('name').value.trim();
@@ -632,20 +666,28 @@
         return;
       }
       
+      // ตั้งค่า flag ป้องกันการส่งซ้ำ
+      isSubmitting = true;
+      
       // แสดงตัวโหลด
       document.getElementById('loadingIndicator').classList.remove('hidden');
-      document.getElementById('submitBtn').innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> กำลังบันทึกข้อมูล...';
+      const submitBtn = document.getElementById('submitBtn');
+      const originalBtnText = submitBtn.innerHTML;
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> กำลังบันทึกข้อมูล...';
+      submitBtn.disabled = true;
       
       try {
-        // แปลงไฟล์เป็น base64 - แก้ไขให้จัดการ error ได้ดีขึ้น
+        // แปลงไฟล์เป็น base64 แบบทีละไฟล์เพื่อลด memory usage
         const base64Files = [];
-        for (const file of selectedFiles) {
+        
+        for (let i = 0; i < selectedFiles.length; i++) {
           try {
-            const base64File = await fileToBase64(file);
+            console.log(`Converting file ${i + 1}/${selectedFiles.length}: ${selectedFiles[i].name}`);
+            const base64File = await fileToBase64(selectedFiles[i]);
             base64Files.push(base64File);
           } catch (error) {
-            console.error('Error converting file:', file.name, error);
-            throw new Error(`เกิดข้อผิดพลาดในการแปลงไฟล์ ${file.name}: ${error.message}`);
+            console.error('Error converting file:', selectedFiles[i].name, error);
+            throw new Error(`ไม่สามารถประมวลผลไฟล์ "${selectedFiles[i].name}" ได้: ${error.message}`);
           }
         }
         
@@ -656,33 +698,54 @@
           name: name,
           email: email,
           phone: phone,
-          files: base64Files
+          files: base64Files,
+          timestamp: new Date().toISOString()
         };
         
-        console.log('Sending form data:', {
-          ...formData,
-          files: formData.files.map(f => ({...f, data: f.data.substring(0, 20) + '...'}))
+        console.log('Preparing to send form data:', {
+          action: formData.action,
+          userId: formData.userId,
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          filesCount: formData.files.length,
+          totalSize: formData.files.reduce((sum, file) => sum + file.size, 0)
         });
         
-        // URL ของ Google Apps Script (ต้องเปลี่ยนเป็น URL ของคุณ)
+        // URL ของ Google Apps Script
         const scriptUrl = 'https://script.google.com/macros/s/AKfycbwpjzb0BRFJrSL0YZwcrIgse5uNbdDoJ5GaEWxbX8HhPTg1aHEeaJgBVURHbVrahUa3/exec';
         
-        // ส่งข้อมูล - แก้ไขการจัดการ response
-        const response = await fetch(scriptUrl, {
+        // ส่งข้อมูลแบบ POST
+        const response = await fetchWithTimeout(scriptUrl, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify(formData)
-        });
+        }, 60000); // เพิ่ม timeout เป็น 60 วินาที
         
-        // ตรวจสอบ HTTP status ก่อนแปลงเป็น JSON
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+        
+        // ตรวจสอบ HTTP status
         if (!response.ok) {
           const errorText = await response.text();
-          throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
+          console.error('HTTP error response:', errorText);
+          throw new Error(`เซิร์ฟเวอร์ตอบกลับด้วยข้อผิดพลาด (${response.status}): ${response.statusText}`);
         }
         
-        const data = await response.json();
+        // แปลง response เป็น JSON
+        let data;
+        try {
+          const responseText = await response.text();
+          console.log('Raw response:', responseText);
+          data = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('JSON parse error:', parseError);
+          throw new Error('ได้รับข้อมูลที่ไม่ถูกต้องจากเซิร์ฟเวอร์');
+        }
+        
+        console.log('Parsed response data:', data);
         
         if (data.status === 'success') {
           // แสดงหน้าสำเร็จ
@@ -696,16 +759,39 @@
           // รีเซ็ตไฟล์ที่เลือก
           selectedFiles = [];
           document.getElementById('filePreview').innerHTML = '';
+          
+          // รีเซ็ตฟอร์ม
+          document.getElementById('registrationForm').reset();
+          document.getElementById('userId').value = userId; // เก็บ userId ไว้
+          
         } else {
-          throw new Error(data.message || 'บันทึกข้อมูลไม่สำเร็จ');
+          throw new Error(data.message || data.error || 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ');
         }
       } catch (error) {
         console.error('Registration Error:', error);
-        showError('บันทึกข้อมูลไม่สำเร็จ', error.message || 'ไม่ทราบสาเหตุ');
+        
+        // แสดงข้อผิดพลาดที่เฉพาะเจาะจงมากขึ้น
+        let errorTitle = 'บันทึกข้อมูลไม่สำเร็จ';
+        let errorMessage = error.message || 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ';
+        
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+          errorTitle = 'ปัญหาการเชื่อมต่อ';
+          errorMessage = 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต';
+        } else if (error.message.includes('timeout') || error.message.includes('หมดเวลา')) {
+          errorTitle = 'การเชื่อมต่อหมดเวลา';
+          errorMessage = 'การส่งข้อมูลใช้เวลานานเกินไป กรุณาลองใหม่อีกครั้ง';
+        } else if (error.message.includes('ไฟล์')) {
+          errorTitle = 'ปัญหาไฟล์';
+          errorMessage = error.message;
+        }
+        
+        showError(errorTitle, errorMessage, `รายละเอียด: ${error.message}`);
       } finally {
-        // ซ่อนตัวโหลด
+        // รีเซ็ตสถานะ
+        isSubmitting = false;
         document.getElementById('loadingIndicator').classList.add('hidden');
-        document.getElementById('submitBtn').innerHTML = '<i class="fas fa-paper-plane mr-2"></i> ส่งแบบฟอร์ม';
+        submitBtn.innerHTML = originalBtnText;
+        submitBtn.disabled = false;
       }
     });
     
@@ -719,15 +805,25 @@
       // แสดงหน้าสำเร็จและซ่อนฟอร์ม
       document.getElementById('formContainer').classList.add('hidden');
       document.getElementById('successContainer').classList.remove('hidden');
+      document.getElementById('errorContainer').classList.add('hidden');
       
       // เลื่อนขึ้นด้านบน
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     
-    // แสดงข้อผิดพลาด
-    function showError(title, message) {
+    // แสดงข้อผิดพลาด - ปรับปรุงให้แสดงรายละเอียดมากขึ้น
+    function showError(title, message, details = '') {
       document.getElementById('errorTitle').textContent = title;
       document.getElementById('errorMessage').textContent = message;
+      
+      const errorDetails = document.getElementById('errorDetails');
+      if (details) {
+        errorDetails.textContent = details;
+        errorDetails.classList.remove('hidden');
+      } else {
+        errorDetails.classList.add('hidden');
+      }
+      
       document.getElementById('errorContainer').classList.remove('hidden');
       
       // เลื่อนไปที่ error message
@@ -736,16 +832,17 @@
         block: 'center' 
       });
       
-      // ซ่อนข้อผิดพลาดหลังจาก 8 วินาที
+      // ซ่อนข้อผิดพลาดหลังจาก 10 วินาที
       setTimeout(() => {
         document.getElementById('errorContainer').classList.add('hidden');
-      }, 8000);
+      }, 10000);
     }
     
     // ปุ่มลองอีกครั้ง
     document.getElementById('retryButton').addEventListener('click', () => {
       document.getElementById('errorContainer').classList.add('hidden');
-      location.reload(); // รีโหลดหน้าเพื่อเริ่มต้นใหม่
+      // รีเซ็ต isSubmitting flag
+      isSubmitting = false;
     });
     
     // ปุ่มแก้ไขข้อมูล
@@ -800,19 +897,42 @@
       return emailRegex.test(email);
     }
     
-    // ฟังก์ชัน fetch with timeout
+    // ฟังก์ชัน fetch with timeout - ปรับปรุงให้ทำงานได้ดีขึ้น
     function fetchWithTimeout(url, options, timeout = 30000) {
-      return Promise.race([
-        fetch(url, options),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('การเชื่อมต่อหมดเวลา กรุณาลองใหม่อีกครั้ง')), timeout)
-      ]);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      
+      return fetch(url, {
+        ...options,
+        signal: controller.signal
+      }).then(response => {
+        clearTimeout(timeoutId);
+        return response;
+      }).catch(error => {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+          throw new Error('การเชื่อมต่อหมดเวลา กรุณาลองใหม่อีกครั้ง');
+        }
+        throw error;
+      });
     }
     
     // เริ่มต้นแอปพลิเคชัน
     window.addEventListener('DOMContentLoaded', () => {
       console.log('DOM loaded, initializing...');
       initializeLiff();
+    });
+    
+    // จัดการ error ที่ไม่คาดคิด
+    window.addEventListener('error', (event) => {
+      console.error('Unhandled error:', event.error);
+      showError('เกิดข้อผิดพลาดระบบ', 'กรุณารีเฟรชหน้าเว็บและลองใหม่อีกครั้ง', event.error?.message || '');
+    });
+    
+    // จัดการ unhandled promise rejection
+    window.addEventListener('unhandledrejection', (event) => {
+      console.error('Unhandled promise rejection:', event.reason);
+      showError('เกิดข้อผิดพลาดระบบ', 'กรุณารีเฟรชหน้าเว็บและลองใหม่อีกครั้ง', event.reason?.message || '');
     });
   </script>
 </body>
