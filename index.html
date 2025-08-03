@@ -57,20 +57,36 @@
       70% { transform: scale(1.2); opacity: 1; }
       100% { transform: scale(1); opacity: 1; }
     }
+    
+    .profile-pic {
+      border: 3px solid #3b82f6;
+      box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2);
+    }
+    
+    input:read-only {
+      background-color: #f9fafb;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body class="bg-gray-50">
   <div class="container mx-auto px-4 py-8 max-w-3xl">
-    <!-- Header -->
+    <!-- Header with LINE Profile -->
     <div class="text-center mb-8">
-      <div class="relative w-24 h-24 mx-auto mb-4">
-        <div class="absolute inset-0 bg-gradient-to-r from-primary to-accent rounded-full blur-md opacity-30"></div>
-        <div class="relative w-full h-full bg-white rounded-full flex items-center justify-center shadow-lg">
-          <i class="fas fa-user-edit text-primary text-3xl"></i>
+      <div id="profileSection" class="flex flex-col items-center">
+        <div class="relative mb-4">
+          <img id="profilePicture" class="w-24 h-24 rounded-full profile-pic object-cover" src="" alt="Profile Picture">
+          <div class="absolute bottom-0 right-0 w-6 h-6 bg-primary rounded-full flex items-center justify-center">
+            <i class="fas fa-check text-white text-xs"></i>
+          </div>
         </div>
+        <h1 id="lineName" class="text-2xl font-bold text-gray-800 mb-1">-</h1>
+        <p id="lineEmail" class="text-gray-600 text-sm">-</p>
       </div>
-      <h1 class="text-3xl font-bold text-gray-800">ระบบลงทะเบียน LINE</h1>
-      <p class="text-gray-600 mt-2">กรุณากรอกข้อมูลให้ครบถ้วนเพื่อลงทะเบียน</p>
+      <div class="mt-4">
+        <h2 class="text-3xl font-bold text-gray-800">ระบบลงทะเบียน</h2>
+        <p class="text-gray-600 mt-2">กรุณาตรวจสอบและกรอกข้อมูลให้ครบถ้วน</p>
+      </div>
     </div>
     
     <!-- Registration Form -->
@@ -206,15 +222,47 @@
     async function initializeLiff() {
       try {
         // เปลี่ยนเป็น LIFF ID ของคุณ
-        await liff.init({ liffId: '1656079273-12vmyKy3' });
+        await liff.init({ 
+          liffId: '1657897160-1wM9d3Dx',
+          withLoginOnExternalBrowser: true
+        });
         
         if (!liff.isLoggedIn()) {
-          liff.login();
+          // ล็อกอินพร้อมขอสิทธิ์ profile และ email
+          liff.login({ scope: 'profile email' });
           return;
         }
         
+        // ดึงโปรไฟล์ LINE
         const profile = await liff.getProfile();
+        
+        // แสดงข้อมูลโปรไฟล์ LINE
+        document.getElementById('profilePicture').src = profile.pictureUrl || 'https://via.placeholder.com/150';
+        document.getElementById('lineName').textContent = profile.displayName;
         document.getElementById('userId').value = profile.userId;
+        
+        // ดึง email จาก ID Token (ถ้ามี)
+        const idToken = liff.getIDToken();
+        let userEmail = '';
+        if (idToken) {
+          const decodedToken = liff.getDecodedIDToken();
+          userEmail = decodedToken?.email || '';
+        }
+        
+        // แสดง email ในส่วนโปรไฟล์
+        if (userEmail) {
+          document.getElementById('lineEmail').textContent = userEmail;
+        } else {
+          document.getElementById('lineEmail').textContent = 'ไม่พบอีเมลในโปรไฟล์ LINE';
+        }
+        
+        // เติม email ในช่องอีเมล (ถ้ามี)
+        if (userEmail) {
+          document.getElementById('email').value = userEmail;
+          // ตั้งค่าเป็น readonly ถ้าได้ email มาแล้ว
+          document.getElementById('email').readOnly = true;
+          document.getElementById('email').classList.add('bg-gray-100', 'cursor-not-allowed');
+        }
         
         // ตรวจสอบว่าผู้ใช้เคยลงทะเบียนแล้วหรือไม่
         checkExistingRegistration(profile.userId);
