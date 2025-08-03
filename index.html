@@ -94,6 +94,16 @@
       border-color: #3b82f6 !important;
       background-color: #eff6ff !important;
     }
+    
+    .file-preview-img {
+      height: 80px;
+      object-fit: cover;
+      border-radius: 0.5rem;
+    }
+    
+    .file-icon {
+      font-size: 2.5rem;
+    }
   </style>
 </head>
 <body class="bg-gray-50">
@@ -193,6 +203,28 @@
             </div>
           </div>
           
+          <!-- File Upload -->
+          <div class="mb-6">
+            <label class="block text-gray-700 text-sm font-bold mb-2">
+              <i class="fas fa-file-upload text-primary mr-1"></i> อัปโหลดไฟล์ (สูงสุด 5 ไฟล์)
+            </label>
+            <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer" id="dropZone">
+              <div class="space-y-1 text-center">
+                <div class="flex text-sm text-gray-600 justify-center">
+                  <label class="relative cursor-pointer rounded-md font-medium text-primary hover:text-blue-500">
+                    <span>คลิกเพื่อเลือกไฟล์</span>
+                    <input id="fileInput" type="file" class="sr-only" multiple accept="image/*, .pdf, .doc, .docx, .xls, .xlsx" max="5">
+                  </label>
+                </div>
+                <p class="text-xs text-gray-500">PNG, JPG, PDF, DOC, XLS ขึ้นไป (ขนาดไม่เกิน 5MB)</p>
+                <p class="text-xs text-gray-500 mt-2">หรือลากไฟล์มาวางที่นี่</p>
+              </div>
+            </div>
+            
+            <!-- File Preview -->
+            <div id="filePreview" class="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+          </div>
+          
           <!-- Action Buttons -->
           <div class="flex flex-col sm:flex-row gap-3">
             <button type="submit" id="submitBtn" class="flex-1 bg-gradient-to-r from-primary to-accent hover:from-blue-600 hover:to-purple-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center">
@@ -247,6 +279,9 @@
   </div>
   
   <script>
+    // ตัวแปรเก็บไฟล์ที่เลือก
+    let selectedFiles = [];
+    
     // เริ่มต้น LIFF App
     async function initializeLiff() {
       try {
@@ -261,10 +296,186 @@
         // แสดงสถานะการล็อกอิน
         await updateLoginStatus();
         
+        // เริ่มต้นระบบไฟล์
+        initFileUpload();
+        
       } catch (error) {
         console.error('LIFF Initialization Error:', error);
         showError('ไม่สามารถเชื่อมต่อกับ LINE ได้', error.message);
       }
+    }
+    
+    // เริ่มต้นระบบอัปโหลดไฟล์
+    function initFileUpload() {
+      const fileInput = document.getElementById('fileInput');
+      const dropZone = document.getElementById('dropZone');
+      const filePreview = document.getElementById('filePreview');
+      
+      // จัดการการคลิก dropZone เพื่อเปิด file input
+      dropZone.addEventListener('click', () => {
+        fileInput.click();
+      });
+      
+      // จัดการการเปลี่ยนไฟล์ใน input
+      fileInput.addEventListener('change', handleFileSelect);
+      
+      // จัดการ drag and drop
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+      });
+      
+      function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, highlight, false);
+      });
+      
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, unhighlight, false);
+      });
+      
+      function highlight() {
+        dropZone.classList.add('drag-over');
+      }
+      
+      function unhighlight() {
+        dropZone.classList.remove('drag-over');
+      }
+      
+      // จัดการ drop
+      dropZone.addEventListener('drop', handleDrop, false);
+      
+      function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        handleFiles(files);
+      }
+      
+      function handleFileSelect(e) {
+        const files = e.target.files;
+        handleFiles(files);
+      }
+      
+      function handleFiles(files) {
+        // ตรวจสอบจำนวนไฟล์ (ไม่เกิน 5)
+        if (selectedFiles.length + files.length > 5) {
+          showError('อัปโหลดได้สูงสุด 5 ไฟล์', 'กรุณาลดจำนวนไฟล์ลง');
+          return;
+        }
+        
+        // ตรวจสอบขนาดไฟล์ (ไม่เกิน 5MB ต่อไฟล์)
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          if (file.size > 5 * 1024 * 1024) {
+            showError(`ไฟล์ ${file.name} มีขนาดใหญ่เกิน 5MB`, 'กรุณาเลือกไฟล์ที่มีขนาดเล็กกว่า');
+            return;
+          }
+        }
+        
+        // เพิ่มไฟล์ที่เลือก
+        for (let i = 0; i < files.length; i++) {
+          selectedFiles.push(files[i]);
+        }
+        
+        // แสดงตัวอย่างไฟล์
+        previewFiles();
+        
+        // รีเซ็ต input เพื่อให้สามารถเลือกไฟล์เดิมซ้ำได้
+        fileInput.value = '';
+      }
+    }
+    
+    // แสดงตัวอย่างไฟล์ที่เลือก
+    function previewFiles() {
+      const filePreview = document.getElementById('filePreview');
+      filePreview.innerHTML = '';
+      
+      selectedFiles.forEach((file, index) => {
+        const fileCard = document.createElement('div');
+        fileCard.className = 'file-card bg-white rounded-lg shadow p-4 flex items-center';
+        
+        let previewContent = '';
+        if (file.type.startsWith('image/')) {
+          const url = URL.createObjectURL(file);
+          previewContent = `
+            <img src="${url}" alt="${file.name}" class="file-preview-img w-full h-20 object-cover rounded">
+          `;
+        } else {
+          let fileIcon = '';
+          let iconColor = 'text-blue-500';
+          
+          if (file.type === 'application/pdf') {
+            fileIcon = 'file-pdf';
+            iconColor = 'text-red-500';
+          } else if (file.type.includes('word') || file.type.includes('document')) {
+            fileIcon = 'file-word';
+            iconColor = 'text-blue-600';
+          } else if (file.type.includes('excel') || file.type.includes('spreadsheet')) {
+            fileIcon = 'file-excel';
+            iconColor = 'text-green-600';
+          } else {
+            fileIcon = 'file';
+            iconColor = 'text-gray-500';
+          }
+          
+          previewContent = `
+            <div class="text-center">
+              <i class="fas fa-${fileIcon} ${iconColor} file-icon"></i>
+              <p class="text-xs mt-1 text-gray-600 truncate">${file.name}</p>
+            </div>
+          `;
+        }
+        
+        fileCard.innerHTML = `
+          <div class="flex-shrink-0 w-20 h-20 flex items-center justify-center">
+            ${previewContent}
+          </div>
+          <div class="ml-3 flex-1 min-w-0">
+            <p class="text-sm font-medium text-gray-900 truncate">${file.name}</p>
+            <p class="text-xs text-gray-500">${formatFileSize(file.size)}</p>
+          </div>
+          <button class="ml-2 text-red-500 hover:text-red-700 remove-file" data-index="${index}">
+            <i class="fas fa-times"></i>
+          </button>
+        `;
+        
+        filePreview.appendChild(fileCard);
+      });
+      
+      // เพิ่ม event listener สำหรับปุ่มลบ
+      document.querySelectorAll('.remove-file').forEach(button => {
+        button.addEventListener('click', (e) => {
+          const index = parseInt(e.currentTarget.getAttribute('data-index'));
+          selectedFiles.splice(index, 1);
+          previewFiles();
+        });
+      });
+    }
+    
+    // รูปแบบขนาดไฟล์
+    function formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    // แปลงไฟล์เป็น base64 (Promise based)
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve({
+          fileName: file.name,
+          mimeType: file.type,
+          data: reader.result.split(',')[1] // เอาเฉพาะ base64 โดยไม่รวม header
+        });
+        reader.onerror = error => reject(error);
+      });
     }
     
     // อัปเดตสถานะการล็อกอิน
@@ -372,7 +583,7 @@
     });
     
     // จัดการการส่งฟอร์ม
-    document.getElementById('registrationForm').addEventListener('submit', (e) => {
+    document.getElementById('registrationForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       
       // ตรวจสอบความถูกต้องของข้อมูล
@@ -413,23 +624,44 @@
       document.getElementById('loadingIndicator').classList.remove('hidden');
       document.getElementById('submitBtn').innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> กำลังบันทึกข้อมูล...';
       
-      // ส่งข้อมูลฟอร์ม
-      const form = document.getElementById('registrationForm');
-      const formData = new FormData(form);
-      
-      // URL ของ Google Apps Script (ต้องเปลี่ยนเป็น URL ของคุณ)
-      const scriptUrl = 'https://script.google.com/macros/s/AKfycbwpjzb0BRFJrSL0YZwcrIgse5uNbdDoJ5GaEWxbX8HhPTg1aHEeaJgBVURHbVrahUa3/exec';
-      
-      fetch(scriptUrl, {
-        method: 'POST',
-        body: formData
-      })
-      .then(response => response.text())
-      .then(data => {
-        // แสดงผลลัพธ์
-        document.querySelector("#msg").innerHTML = data;
+      try {
+        // แปลงไฟล์เป็น base64
+        const base64Files = [];
+        for (const file of selectedFiles) {
+          try {
+            const base64File = await fileToBase64(file);
+            base64Files.push(base64File);
+          } catch (error) {
+            console.error('Error converting file:', error);
+            throw new Error(`เกิดข้อผิดพลาดในการแปลงไฟล์ ${file.name}`);
+          }
+        }
         
-        if(data === 'Success') {
+        // สร้าง object ข้อมูล
+        const formData = {
+          action: 'register',
+          userId: userId,
+          name: name,
+          email: email,
+          phone: phone,
+          files: base64Files
+        };
+        
+        // URL ของ Google Apps Script (ต้องเปลี่ยนเป็น URL ของคุณ)
+        const scriptUrl = 'https://script.google.com/macros/s/AKfycbwpjzb0BRFJrSL0YZwcrIgse5uNbdDoJ5GaEWxbX8HhPTg1aHEeaJgBVURHbVrahUa3/exec';
+        
+        // ส่งข้อมูล
+        const response = await fetch(scriptUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(formData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.status === 'success') {
           // แสดงหน้าสำเร็จ
           showSuccessScreen({
             name: name,
@@ -438,21 +670,20 @@
             userId: userId
           });
           
-          // รีเซ็ตฟอร์ม
-          resetForm();
+          // รีเซ็ตไฟล์ที่เลือก
+          selectedFiles = [];
+          document.getElementById('filePreview').innerHTML = '';
         } else {
-          throw new Error('บันทึกข้อมูลไม่สำเร็จ');
+          throw new Error(data.message || 'บันทึกข้อมูลไม่สำเร็จ');
         }
-      })
-      .catch(error => {
+      } catch (error) {
         console.error('Registration Error:', error);
         showError('บันทึกข้อมูลไม่สำเร็จ', error.message);
-      })
-      .finally(() => {
+      } finally {
         // ซ่อนตัวโหลด
         document.getElementById('loadingIndicator').classList.add('hidden');
         document.getElementById('submitBtn').innerHTML = '<i class="fas fa-paper-plane mr-2"></i> ส่งแบบฟอร์ม';
-      });
+      }
     });
     
     // แสดงหน้าสำเร็จ
