@@ -789,7 +789,6 @@
         fetch(url, options),
         new Promise((_, reject) =>
           setTimeout(() => reject(new Error('การเชื่อมต่อหมดเวลา กรุณาลองใหม่อีกครั้ง')), timeout)
-        )
       ]);
     }
     
