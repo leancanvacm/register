@@ -104,6 +104,25 @@
     .file-icon {
       font-size: 2.5rem;
     }
+    
+    /* ปรับให้แสดงไฟล์ได้ 5 ไฟล์ */
+    .file-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 1rem;
+    }
+    
+    @media (min-width: 640px) {
+      .file-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      }
+    }
+    
+    @media (min-width: 768px) {
+      .file-grid {
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      }
+    }
   </style>
 </head>
 <body class="bg-gray-50">
@@ -207,14 +226,14 @@
           <!-- File Upload -->
           <div class="mb-6">
             <label class="block text-gray-700 text-sm font-bold mb-2">
-              <i class="fas fa-file-upload text-primary mr-1"></i> อัปโหลดไฟล์ (สูงสุด 3 ไฟล์, ไฟล์ละไม่เกิน 2MB)
+              <i class="fas fa-file-upload text-primary mr-1"></i> อัปโหลดไฟล์ (สูงสุด 5 ไฟล์, ไฟล์ละไม่เกิน 2MB)
             </label>
             <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer" id="dropZone">
               <div class="space-y-1 text-center">
                 <div class="flex text-sm text-gray-600 justify-center">
                   <label class="relative cursor-pointer rounded-md font-medium text-primary hover:text-blue-500">
                     <span>คลิกเพื่อเลือกไฟล์</span>
-                    <input id="fileInput" type="file" class="sr-only" multiple accept="image/*, .pdf, .doc, .docx, .xls, .xlsx" max="3">
+                    <input id="fileInput" type="file" class="sr-only" multiple accept="image/*, .pdf, .doc, .docx, .xls, .xlsx" max="5">
                   </label>
                 </div>
                 <p class="text-xs text-gray-500">PNG, JPG, PDF, DOC, XLS (ขนาดไม่เกิน 2MB)</p>
@@ -223,7 +242,7 @@
             </div>
             
             <!-- File Preview -->
-            <div id="filePreview" class="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+            <div id="filePreview" class="mt-4 file-grid"></div>
           </div>
           
           <!-- Action Buttons -->
@@ -265,10 +284,10 @@
       </div>
       
       <div class="flex flex-col sm:flex-row gap-3 justify-center">
-        <button id="closeBtn" class="bg-gradient-to-r from-primary to-accent hover:from-blue-600 hover:to-purple-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300">
+        <button id="closeBtn" class="bg-gradient-to-r from-primary to-accent hover:from-blue-6 hover:to-purple-6 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300">
           <i class="fas fa-times mr-2"></i> ปิดหน้าต่าง
         </button>
-        <button id="editAfterBtn" class="bg-gradient-to-r from-secondary to-green-500 hover:from-green-600 hover:to-green-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300">
+        <button id="editAfterBtn" class="bg-gradient-to-r from-secondary to-green-5 hover:from-green-6 hover:to-green-6 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300">
           <i class="fas fa-edit mr-2"></i> แก้ไขข้อมูล
         </button>
       </div>
@@ -363,9 +382,9 @@
       }
       
       function handleFiles(files) {
-        // ตรวจสอบจำนวนไฟล์ (ลดเหลือ 3 ไฟล์)
-        if (selectedFiles.length + files.length > 3) {
-          showError('อัปโหลดได้สูงสุด 3 ไฟล์', 'กรุณาลดจำนวนไฟล์ลง');
+        // ปรับจำนวนไฟล์สูงสุดเป็น 5 ไฟล์
+        if (selectedFiles.length + files.length > 5) {
+          showError('อัปโหลดได้สูงสุด 5 ไฟล์', 'กรุณาลดจำนวนไฟล์ลง');
           return;
         }
         
