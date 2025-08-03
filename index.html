@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบลงทะเบียน LINE</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#3b82f6',
+            secondary: '#10b981',
+            accent: '#8b5cf6',
+            dark: '#1e293b'
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+    
+    body {
+      font-family: 'Prompt', sans-serif;
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+      min-height: 100vh;
+    }
+    
+    .file-card {
+      transition: all 0.3s ease;
+      animation: fadeIn 0.5s ease-out;
+    }
+    
+    .file-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.2);
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .success-check {
+      animation: checkmark 0.5s ease-out;
+    }
+    
+    @keyframes checkmark {
+      0% { transform: scale(0); opacity: 0; }
+      70% { transform: scale(1.2); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+  </style>
+</head>
+<body class="bg-gray-50">
+  <div class="container mx-auto px-4 py-8 max-w-3xl">
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <div class="relative w-24 h-24 mx-auto mb-4">
+        <div class="absolute inset-0 bg-gradient-to-r from-primary to-accent rounded-full blur-md opacity-30"></div>
+        <div class="relative w-full h-full bg-white rounded-full flex items-center justify-center shadow-lg">
+          <i class="fas fa-user-edit text-primary text-3xl"></i>
+        </div>
+      </div>
+      <h1 class="text-3xl font-bold text-gray-800">ระบบลงทะเบียน LINE</h1>
+      <p class="text-gray-600 mt-2">กรุณากรอกข้อมูลให้ครบถ้วนเพื่อลงทะเบียน</p>
+    </div>
+    
+    <!-- Registration Form -->
+    <div id="formContainer" class="bg-white rounded-2xl shadow-xl overflow-hidden transition-all duration-500">
+      <div class="p-6 sm:p-8">
+        <form id="registrationForm">
+          <!-- User ID (Hidden) -->
+          <input type="hidden" id="userId">
+          
+          <!-- Name -->
+          <div class="mb-6">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="name">
+              <i class="fas fa-user text-primary mr-1"></i> ชื่อ-นามสกุล
+            </label>
+            <div class="relative">
+              <input class="w-full py-3 px-4 pl-11 text-gray-700 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors" 
+                     id="name" name="name" type="text" placeholder="กรุณากรอกชื่อเต็ม" required>
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <i class="fas fa-user text-gray-400"></i>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Email -->
+          <div class="mb-6">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="email">
+              <i class="fas fa-envelope text-primary mr-1"></i> อีเมล
+            </label>
+            <div class="relative">
+              <input class="w-full py-3 px-4 pl-11 text-gray-700 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors" 
+                     id="email" name="email" type="email" placeholder="example@domain.com" required>
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <i class="fas fa-envelope text-gray-400"></i>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Phone -->
+          <div class="mb-6">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="phone">
+              <i class="fas fa-phone text-primary mr-1"></i> เบอร์โทรศัพท์
+            </label>
+            <div class="relative">
+              <input class="w-full py-3 px-4 pl-11 text-gray-700 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors" 
+                     id="phone" name="phone" type="tel" placeholder="0812345678" required>
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <i class="fas fa-phone text-gray-400"></i>
+              </div>
+            </div>
+          </div>
+          
+          <!-- File Upload -->
+          <div class="mb-8">
+            <label class="block text-gray-700 text-sm font-bold mb-2">
+              <i class="fas fa-paperclip text-primary mr-1"></i> อัปโหลดไฟล์ (สูงสุด 5 ไฟล์)
+            </label>
+            
+            <div class="flex items-center justify-center w-full">
+              <label for="fileInput" class="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 border-gray-300 hover:border-primary transition-colors">
+                <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                  <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-2"></i>
+                  <p class="mb-2 text-sm text-gray-500">คลิกเพื่ออัปโหลด หรือลากไฟล์มาวางที่นี่</p>
+                  <p class="text-xs text-gray-500">รองรับไฟล์ทุกประเภท (สูงสุด 5 ไฟล์)</p>
+                </div>
+                <input id="fileInput" type="file" class="hidden" multiple>
+              </label>
+            </div>
+            
+            <!-- File Preview -->
+            <div id="filePreview" class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+          </div>
+          
+          <!-- Action Buttons -->
+          <div class="flex flex-col sm:flex-row gap-3">
+            <button type="submit" id="submitBtn" class="flex-1 bg-gradient-to-r from-primary to-accent hover:from-primary-dark hover:to-accent-dark text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center">
+              <i class="fas fa-paper-plane mr-2"></i> ส่งแบบฟอร์ม
+            </button>
+            
+            <button type="button" id="editBtn" class="flex-1 bg-gradient-to-r from-secondary to-green-500 hover:from-secondary-dark hover:to-green-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center hidden">
+              <i class="fas fa-edit mr-2"></i> แก้ไขข้อมูล
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+    
+    <!-- Loading Indicator -->
+    <div id="loadingIndicator" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+      <div class="bg-white rounded-xl p-8 flex flex-col items-center">
+        <div class="w-16 h-16 border-t-4 border-primary border-solid rounded-full animate-spin mb-4"></div>
+        <p class="text-gray-700 font-medium">กำลังประมวลผลข้อมูล...</p>
+      </div>
+    </div>
+    
+    <!-- Success Message -->
+    <div id="successContainer" class="bg-white rounded-2xl shadow-xl overflow-hidden p-8 text-center hidden">
+      <div class="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 success-check">
+        <i class="fas fa-check-circle text-green-600 text-4xl"></i>
+      </div>
+      <h2 class="text-2xl font-bold text-gray-800 mb-2">ลงทะเบียนสำเร็จ!</h2>
+      <p class="text-gray-600 mb-6">ข้อมูลของคุณถูกบันทึกเรียบร้อยแล้ว</p>
+      
+      <div class="mb-6 p-4 bg-blue-50 rounded-lg text-left">
+        <h3 class="font-bold text-gray-700 mb-2">ข้อมูลที่ลงทะเบียน:</h3>
+        <p id="successName" class="text-gray-600"><i class="fas fa-user text-primary mr-2"></i> <span class="font-medium">-</span></p>
+        <p id="successEmail" class="text-gray-600"><i class="fas fa-envelope text-primary mr-2"></i> <span class="font-medium">-</span></p>
+        <p id="successPhone" class="text-gray-600"><i class="fas fa-phone text-primary mr-2"></i> <span class="font-medium">-</span></p>
+        <p id="successFiles" class="text-gray-600"><i class="fas fa-file text-primary mr-2"></i> <span class="font-medium">0 ไฟล์</span></p>
+      </div>
+      
+      <div class="flex flex-col sm:flex-row gap-3 justify-center">
+        <button id="closeBtn" class="bg-gradient-to-r from-primary to-accent hover:from-primary-dark hover:to-accent-dark text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300">
+          <i class="fas fa-times mr-2"></i> ปิดหน้าต่าง
+        </button>
+        <button id="editAfterBtn" class="bg-gradient-to-r from-secondary to-green-500 hover:from-secondary-dark hover:to-green-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300">
+          <i class="fas fa-edit mr-2"></i> แก้ไขข้อมูล
+        </button>
+      </div>
+    </div>
+    
+    <!-- Footer -->
+    <div class="text-center text-gray-500 text-sm mt-12">
+      <p>© 2023 ระบบลงทะเบียน LINE LIFF | สร้างด้วย Google Apps Script</p>
+    </div>
+  </div>
+  
+  <script>
+    // ตัวแปรเก็บไฟล์ที่อัปโหลด
+    let uploadedFiles = [];
+    const MAX_FILES = 5;
+    
+    // เริ่มต้น LIFF App
+    async function initializeLiff() {
+      try {
+        // เปลี่ยนเป็น LIFF ID ของคุณ
+        await liff.init({ liffId: '1656079273-12vmyKy3' });
+        
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+        
+        const profile = await liff.getProfile();
+        document.getElementById('userId').value = profile.userId;
+        
+        // ตรวจสอบว่าผู้ใช้เคยลงทะเบียนแล้วหรือไม่
+        checkExistingRegistration(profile.userId);
+      } catch (error) {
+        console.error('LIFF Initialization Error:', error);
+        showError('ไม่สามารถเชื่อมต่อกับ LINE ได้ กรุณาลองใหม่อีกครั้ง');
+      }
+    }
+    
+    // ตรวจสอบการลงทะเบียนที่มีอยู่
+    async function checkExistingRegistration(userId) {
+      try {
+        const response = await fetchWithTimeout('https://script.google.com/macros/s/AKfycbwpjzb0BRFJrSL0YZwcrIgse5uNbdDoJ5GaEWxbX8HhPTg1aHEeaJgBVURHbVrahUa3/exec', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'getUserData',
+            userId: userId
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (data.status === 'success' && data.userData) {
+          // แสดงข้อมูลที่มีอยู่
+          document.getElementById('name').value = data.userData.name || '';
+          document.getElementById('email').value = data.userData.email || '';
+          document.getElementById('phone').value = data.userData.phone || '';
+          
+          // แสดงปุ่มแก้ไข
+          document.getElementById('editBtn').classList.remove('hidden');
+        }
+      } catch (error) {
+        console.log('ไม่พบข้อมูลการลงทะเบียน', error);
+      }
+    }
+    
+    // จัดการการอัปโหลดไฟล์
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+      const files = Array.from(e.target.files);
+      
+      // ตรวจสอบจำนวนไฟล์
+      if (files.length + uploadedFiles.length > MAX_FILES) {
+        alert(`⚠️ คุณสามารถอัปโหลดได้สูงสุด ${MAX_FILES} ไฟล์`);
+        return;
+      }
+      
+      // เพิ่มไฟล์ใหม่
+      files.forEach(file => {
+        if (uploadedFiles.length < MAX_FILES) {
+          uploadedFiles.push(file);
+          renderFilePreview(file);
+        }
+      });
+      
+      // รีเซ็ตอินพุตไฟล์
+      e.target.value = '';
+    });
+    
+    // แสดงตัวอย่างไฟล์
+    function renderFilePreview(file) {
+      const fileId = `file-${Date.now()}-${file.name.replace(/\s/g, '-')}`;
+      const fileSize = formatFileSize(file.size);
+      
+      const preview = document.createElement('div');
+      preview.className = 'file-card bg-gray-50 rounded-lg p-3 border border-gray-200';
+      preview.id = fileId;
+      preview.innerHTML = `
+        <div class="flex items-center">
+          <div class="bg-gradient-to-r from-primary to-accent p-2 rounded-lg mr-3 text-white">
+            <i class="fas fa-file text-lg"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="font-medium text-gray-800 truncate">${file.name}</p>
+            <p class="text-xs text-gray-500">${fileSize}</p>
+          </div>
+          <button type="button" class="text-red-500 hover:text-red-700 ml-2" onclick="removeFile('${fileId}')">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      `;
+      
+      document.getElementById('filePreview').appendChild(preview);
+    }
+    
+    // ลบไฟล์
+    window.removeFile = function(fileId) {
+      const preview = document.getElementById(fileId);
+      const fileName = preview.querySelector('.truncate').textContent;
+      
+      uploadedFiles = uploadedFiles.filter(file => file.name !== fileName);
+      preview.remove();
+    };
+    
+    // จัดการการส่งฟอร์ม
+    document.getElementById('registrationForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      // แสดงตัวโหลด
+      document.getElementById('loadingIndicator').classList.remove('hidden');
+      
+      // ข้อมูลผู้ใช้
+      const userData = {
+        userId: document.getElementById('userId').value,
+        name: document.getElementById('name').value,
+        email: document.getElementById('email').value,
+        phone: document.getElementById('phone').value
+      };
+      
+      try {
+        // ส่งข้อมูลไปยัง Google Apps Script
+        const response = await fetchWithTimeout('https://script.google.com/macros/s/APP_ID/exec', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'register',
+            userData: userData,
+            files: await prepareFilesForUpload()
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+          // แสดงหน้าสำเร็จ
+          showSuccessScreen(userData);
+          
+          // ส่งข้อความผ่าน LINE
+          await sendLineMessage(userData);
+        } else {
+          throw new Error(result.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+        }
+      } catch (error) {
+        console.error('Registration Error:', error);
+        showError(`บันทึกข้อมูลไม่สำเร็จ: ${error.message}`);
+      } finally {
+        // ซ่อนตัวโหลด
+        document.getElementById('loadingIndicator').classList.add('hidden');
+      }
+    });
+    
+    // เตรียมไฟล์สำหรับอัปโหลด
+    async function prepareFilesForUpload() {
+      const filePromises = uploadedFiles.map(file => {
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            resolve({
+              fileName: file.name,
+              mimeType: file.type,
+              size: file.size,
+              data: e.target.result.split(',')[1] // ลบ data: prefix
+            });
+          };
+          reader.readAsDataURL(file);
+        });
+      });
+      
+      return Promise.all(filePromises);
+    }
+    
+    // ส่งข้อความผ่าน LINE
+    async function sendLineMessage(userData) {
+      try {
+        const message = `✅ ลงทะเบียนสำเร็จ!\n\nชื่อ: ${userData.name}\nอีเมล: ${userData.email}\nโทรศัพท์: ${userData.phone}\nจำนวนไฟล์: ${uploadedFiles.length} ไฟล์`;
+        
+        await liff.sendMessages([
+          {
+            type: 'text',
+            text: message
+          },
+          {
+            type: 'text',
+            text: 'คุณสามารถแก้ไขข้อมูลได้โดยคลิกที่ปุ่มด้านล่าง',
+            quickReply: {
+              items: [
+                {
+                  type: 'action',
+                  action: {
+                    type: 'uri',
+                    label: 'แก้ไขข้อมูล',
+                    uri: liff.permanentLink.createUrl()
+                  }
+                }
+              ]
+            }
+          }
+        ]);
+      } catch (error) {
+        console.error('Failed to send LINE message:', error);
+      }
+    }
+    
+    // แสดงหน้าสำเร็จ
+    function showSuccessScreen(userData) {
+      // อัปเดตข้อมูลในหน้าสำเร็จ
+      document.getElementById('successName').innerHTML = `<i class="fas fa-user text-primary mr-2"></i> <span class="font-medium">${userData.name}</span>`;
+      document.getElementById('successEmail').innerHTML = `<i class="fas fa-envelope text-primary mr-2"></i> <span class="font-medium">${userData.email}</span>`;
+      document.getElementById('successPhone').innerHTML = `<i class="fas fa-phone text-primary mr-2"></i> <span class="font-medium">${userData.phone}</span>`;
+      document.getElementById('successFiles').innerHTML = `<i class="fas fa-file text-primary mr-2"></i> <span class="font-medium">${uploadedFiles.length} ไฟล์</span>`;
+      
+      // แสดงหน้าสำเร็จและซ่อนฟอร์ม
+      document.getElementById('formContainer').classList.add('hidden');
+      document.getElementById('successContainer').classList.remove('hidden');
+    }
+    
+    // แสดงข้อผิดพลาด
+    function showError(message) {
+      alert(message);
+    }
+    
+    // ปุ่มแก้ไขข้อมูล
+    document.getElementById('editBtn').addEventListener('click', () => {
+      // เปิดใช้งานฟิลด์
+      document.getElementById('name').disabled = false;
+      document.getElementById('email').disabled = false;
+      document.getElementById('phone').disabled = false;
+      
+      // ซ่อนปุ่มแก้ไข
+      document.getElementById('editBtn').classList.add('hidden');
+    });
+    
+    // ปุ่มแก้ไขข้อมูลจากหน้าสำเร็จ
+    document.getElementById('editAfterBtn').addEventListener('click', () => {
+      // แสดงฟอร์มและซ่อนหน้าสำเร็จ
+      document.getElementById('successContainer').classList.add('hidden');
+      document.getElementById('formContainer').classList.remove('hidden');
+    });
+    
+    // ปุ่มปิดหน้าต่าง
+    document.getElementById('closeBtn').addEventListener('click', () => {
+      liff.closeWindow();
+    });
+    
+    // ฟังก์ชันจัดรูปแบบขนาดไฟล์
+    function formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i];
+    }
+    
+    // ฟังก์ชัน fetch with timeout
+    function fetchWithTimeout(url, options, timeout = 15000) {
+      return Promise.race([
+        fetch(url, options),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Request timed out')), timeout)
+        )
+      ]);
+    }
+    
+    // เริ่มต้นแอปพลิเคชัน
+    window.addEventListener('DOMContentLoaded', initializeLiff);
+  </script>
+</body>
+</html>
