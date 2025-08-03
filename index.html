@@ -28,7 +28,82 @@
   </script>
   
   <style>
-    /* CSS (เหมือนเดิม) */
+    @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+    
+    body {
+      font-family: 'Prompt', sans-serif;
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+      min-height: 100vh;
+    }
+    
+    .file-card {
+      transition: all 0.3s ease;
+      animation: fadeIn 0.5s ease-out;
+    }
+    
+    .file-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.2);
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .success-check {
+      animation: checkmark 0.5s ease-out;
+    }
+    
+    @keyframes checkmark {
+      0% { transform: scale(0); opacity: 0; }
+      70% { transform: scale(1.2); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    
+    .profile-pic {
+      border: 3px solid #3b82f6;
+      box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2);
+    }
+    
+    input:read-only {
+      background-color: #f9fafb;
+      cursor: not-allowed;
+    }
+    
+    .form-container {
+      max-height: 1000px;
+      transition: max-height 0.5s ease-in-out;
+    }
+    
+    .form-container.hidden {
+      max-height: 0;
+      overflow: hidden;
+    }
+    
+    .error-container {
+      background-color: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 0.5rem;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .drag-over {
+      border-color: #3b82f6 !important;
+      background-color: #eff6ff !important;
+    }
+    
+    .file-preview-img {
+      height: 80px;
+      object-fit: cover;
+      border-radius: 0.5rem;
+    }
+    
+    .file-icon {
+      font-size: 2.5rem;
+    }
   </style>
 </head>
 <body class="bg-gray-50">
@@ -389,17 +464,29 @@
       return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
     
-    // แปลงไฟล์เป็น base64 (Promise based)
+    // แปลงไฟล์เป็น base64 (Promise based) - แก้ไขแล้ว
     function fileToBase64(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
+        reader.onload = () => {
+          // แยกส่วนข้อมูล base64 ออกจากส่วน header
+          const base64Data = reader.result.split(',')[1];
+          if (!base64Data) {
+            reject(new Error('Failed to convert file to base64'));
+            return;
+          }
+          resolve({
+            fileName: file.name,
+            mimeType: file.type,
+            data: base64Data
+          });
+        };
+        reader.onerror = (error) => {
+          console.error('FileReader error:', error);
+          reject(new Error('เกิดข้อผิดพลาดในการอ่านไฟล์'));
+        };
+        reader.onabort = () => reject(new Error('การอ่านไฟล์ถูกยกเลิก'));
         reader.readAsDataURL(file);
-        reader.onload = () => resolve({
-          fileName: file.name,
-          mimeType: file.type,
-          data: reader.result.split(',')[1] // เอาเฉพาะ base64 โดยไม่รวม header
-        });
-        reader.onerror = error => reject(error);
       });
     }
     
@@ -507,7 +594,7 @@
       }
     });
     
-    // จัดการการส่งฟอร์ม
+    // จัดการการส่งฟอร์ม - แก้ไขส่วนสำคัญที่น่าจะทำให้เกิดปัญหา "Load failed"
     document.getElementById('registrationForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       
@@ -550,15 +637,15 @@
       document.getElementById('submitBtn').innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> กำลังบันทึกข้อมูล...';
       
       try {
-        // แปลงไฟล์เป็น base64
+        // แปลงไฟล์เป็น base64 - แก้ไขให้จัดการ error ได้ดีขึ้น
         const base64Files = [];
         for (const file of selectedFiles) {
           try {
             const base64File = await fileToBase64(file);
             base64Files.push(base64File);
           } catch (error) {
-            console.error('Error converting file:', error);
-            throw new Error(`เกิดข้อผิดพลาดในการแปลงไฟล์ ${file.name}`);
+            console.error('Error converting file:', file.name, error);
+            throw new Error(`เกิดข้อผิดพลาดในการแปลงไฟล์ ${file.name}: ${error.message}`);
           }
         }
         
@@ -572,10 +659,15 @@
           files: base64Files
         };
         
+        console.log('Sending form data:', {
+          ...formData,
+          files: formData.files.map(f => ({...f, data: f.data.substring(0, 20) + '...'}))
+        });
+        
         // URL ของ Google Apps Script (ต้องเปลี่ยนเป็น URL ของคุณ)
         const scriptUrl = 'https://script.google.com/macros/s/AKfycbwpjzb0BRFJrSL0YZwcrIgse5uNbdDoJ5GaEWxbX8HhPTg1aHEeaJgBVURHbVrahUa3/exec';
         
-        // ส่งข้อมูล
+        // ส่งข้อมูล - แก้ไขการจัดการ response
         const response = await fetch(scriptUrl, {
           method: 'POST',
           headers: {
@@ -583,6 +675,12 @@
           },
           body: JSON.stringify(formData)
         });
+        
+        // ตรวจสอบ HTTP status ก่อนแปลงเป็น JSON
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
+        }
         
         const data = await response.json();
         
@@ -603,7 +701,7 @@
         }
       } catch (error) {
         console.error('Registration Error:', error);
-        showError('บันทึกข้อมูลไม่สำเร็จ', error.message);
+        showError('บันทึกข้อมูลไม่สำเร็จ', error.message || 'ไม่ทราบสาเหตุ');
       } finally {
         // ซ่อนตัวโหลด
         document.getElementById('loadingIndicator').classList.add('hidden');
@@ -624,12 +722,6 @@
       
       // เลื่อนขึ้นด้านบน
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-    
-    // รีเซ็ตฟอร์ม
-    function resetForm() {
-      // ซ่อนปุ่มแก้ไข
-      document.getElementById('editBtn').classList.add('hidden');
     }
     
     // แสดงข้อผิดพลาด
@@ -708,13 +800,12 @@
       return emailRegex.test(email);
     }
     
-    // ฟังก์ชัน fetch with timeout (แก้ไขแล้ว)
+    // ฟังก์ชัน fetch with timeout
     function fetchWithTimeout(url, options, timeout = 30000) {
       return Promise.race([
         fetch(url, options),
-        new Promise((_, reject) => 
+        new Promise((_, reject) =>
           setTimeout(() => reject(new Error('การเชื่อมต่อหมดเวลา กรุณาลองใหม่อีกครั้ง')), timeout)
-        )
       ]);
     }
     
