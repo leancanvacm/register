@@ -94,26 +94,6 @@
       border-color: #3b82f6 !important;
       background-color: #eff6ff !important;
     }
-    
-    /* เพิ่มสไตล์สำหรับมือถือ */
-    @media (max-width: 640px) {
-      .container {
-        padding: 1rem;
-      }
-      
-      .profile-pic {
-        width: 20vw;
-        height: 20vw;
-      }
-      
-      .mobile-full {
-        width: 100%;
-      }
-      
-      .mobile-stack {
-        flex-direction: column;
-      }
-    }
   </style>
 </head>
 <body class="bg-gray-50">
@@ -169,7 +149,7 @@
       <div class="p-6 sm:p-8">
         <form id="registrationForm">
           <!-- User ID (Hidden) -->
-          <input type="hidden" id="userId">
+          <input type="hidden" id="userId" name="userId">
           
           <!-- Name -->
           <div class="mb-6">
@@ -213,32 +193,6 @@
             </div>
           </div>
           
-          <!-- File Upload -->
-          <div class="mb-8">
-            <label class="block text-gray-700 text-sm font-bold mb-2">
-              <i class="fas fa-paperclip text-primary mr-1"></i> อัปโหลดไฟล์ (สูงสุด 5 ไฟล์)
-            </label>
-            
-            <div class="flex items-center justify-center w-full">
-              <label id="dropZone" for="fileInput" class="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 border-gray-300 hover:border-primary transition-colors">
-                <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                  <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-2"></i>
-                  <p class="mb-2 text-sm text-gray-500">คลิกเพื่ออัปโหลด หรือลากไฟล์มาวางที่นี่</p>
-                  <p class="text-xs text-gray-500">รองรับไฟล์ทุกประเภท (สูงสุด 5 ไฟล์, แต่ละไฟล์ไม่เกิน 10MB)</p>
-                </div>
-                <input id="fileInput" type="file" class="hidden" multiple>
-              </label>
-            </div>
-            
-            <!-- File Preview -->
-            <div id="filePreview" class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
-            
-            <!-- File Counter -->
-            <div id="fileCounter" class="mt-2 text-sm text-gray-600 hidden">
-              ไฟล์ที่เลือก: <span id="fileCount">0</span>/<span id="maxFiles">5</span>
-            </div>
-          </div>
-          
           <!-- Action Buttons -->
           <div class="flex flex-col sm:flex-row gap-3">
             <button type="submit" id="submitBtn" class="flex-1 bg-gradient-to-r from-primary to-accent hover:from-blue-600 hover:to-purple-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center">
@@ -274,7 +228,6 @@
         <p id="successName" class="text-gray-600 mb-1"><i class="fas fa-user text-primary mr-2"></i> <span class="font-medium">-</span></p>
         <p id="successEmail" class="text-gray-600 mb-1"><i class="fas fa-envelope text-primary mr-2"></i> <span class="font-medium">-</span></p>
         <p id="successPhone" class="text-gray-600 mb-1"><i class="fas fa-phone text-primary mr-2"></i> <span class="font-medium">-</span></p>
-        <p id="successFiles" class="text-gray-600"><i class="fas fa-file text-primary mr-2"></i> <span class="font-medium">0 ไฟล์</span></p>
       </div>
       
       <div class="flex flex-col sm:flex-row gap-3 justify-center">
@@ -294,47 +247,23 @@
   </div>
   
   <script>
-    // ตัวแปรเก็บไฟล์ที่อัปโหลด
-    let uploadedFiles = [];
-    const MAX_FILES = 5;
-    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-    
     // เริ่มต้น LIFF App
     async function initializeLiff() {
       try {
-        // แสดงตัวโหลดระหว่างการเริ่มต้น LIFF
-        document.getElementById('loadingIndicator').classList.remove('hidden');
-        
         // เปลี่ยนเป็น LIFF ID ของคุณ
         await liff.init({ 
-          liffId: '1656079273-12vmyKy3', // เปลี่ยนเป็น LIFF ID จริงของคุณ
+          liffId: '1656079273-12vmyKy3', 
           withLoginOnExternalBrowser: true
         });
         
         console.log('LIFF initialized successfully');
-        
-        // ถ้าอยู่ในแอป LINE และยังไม่ได้ล็อกอิน ให้ล็อกอินอัตโนมัติ
-        if (liff.isInClient() && !liff.isLoggedIn()) {
-          console.log('Logging in automatically in LINE app');
-          await liff.login();
-        }
         
         // แสดงสถานะการล็อกอิน
         await updateLoginStatus();
         
       } catch (error) {
         console.error('LIFF Initialization Error:', error);
-        
-        // แสดงข้อความข้อผิดพลาดเฉพาะสำหรับมือถือ
-        let errorMsg = 'ไม่สามารถเชื่อมต่อกับ LINE ได้';
-        if (/mobile/i.test(navigator.userAgent)) {
-          errorMsg = 'ไม่สามารถเชื่อมต่อกับ LINE บนมือถือได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต';
-        }
-        
-        showError('เกิดข้อผิดพลาด', errorMsg);
-      } finally {
-        // ซ่อนตัวโหลดหลังจากเริ่มต้นเสร็จสิ้น
-        document.getElementById('loadingIndicator').classList.add('hidden');
+        showError('ไม่สามารถเชื่อมต่อกับ LINE ได้', error.message);
       }
     }
     
@@ -349,9 +278,6 @@
       }
       
       try {
-        // แสดงตัวโหลดระหว่างการดึงข้อมูลโปรไฟล์
-        document.getElementById('loadingIndicator').classList.remove('hidden');
-        
         // ดึงโปรไฟล์ LINE
         const profile = await liff.getProfile();
         console.log('User profile:', profile);
@@ -393,17 +319,7 @@
         
       } catch (error) {
         console.error('Profile Error:', error);
-        
-        // แสดงข้อความข้อผิดพลาดเฉพาะสำหรับมือถือ
-        let errorMsg = 'ไม่สามารถดึงข้อมูลโปรไฟล์ได้';
-        if (/mobile/i.test(navigator.userAgent)) {
-          errorMsg = 'ไม่สามารถดึงข้อมูลโปรไฟล์บนมือถือได้ กรุณาตรวจสอบการเชื่อมต่อ';
-        }
-        
-        showError('เกิดข้อผิดพลาด', errorMsg);
-      } finally {
-        // ซ่อนตัวโหลดหลังจากดึงข้อมูลโปรไฟล์เสร็จสิ้น
-        document.getElementById('loadingIndicator').classList.add('hidden');
+        showError('ไม่สามารถดึงข้อมูลโปรไฟล์ได้', error.message);
       }
     }
     
@@ -450,148 +366,20 @@
         document.getElementById('loadingIndicator').classList.add('hidden');
       } catch (error) {
         console.error('Login Error:', error);
-        
-        // แสดงข้อความข้อผิดพลาดเฉพาะสำหรับมือถือ
-        let errorMsg = 'ไม่สามารถล็อกอินได้';
-        if (/mobile/i.test(navigator.userAgent)) {
-          errorMsg = 'ไม่สามารถล็อกอินบนมือถือได้ กรุณาตรวจสอบการเชื่อมต่อ';
-        }
-        
-        showError('เกิดข้อผิดพลาด', errorMsg);
+        showError('ไม่สามารถล็อกอินได้', error.message);
         document.getElementById('loadingIndicator').classList.add('hidden');
       }
     });
     
-    // Setup drag and drop
-    function setupDragAndDrop() {
-      const dropZone = document.getElementById('dropZone');
-      
-      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        dropZone.addEventListener(eventName, preventDefaults, false);
-      });
-      
-      function preventDefaults(e) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-      
-      ['dragenter', 'dragover'].forEach(eventName => {
-        dropZone.addEventListener(eventName, highlight, false);
-      });
-      
-      ['dragleave', 'drop'].forEach(eventName => {
-        dropZone.addEventListener(eventName, unhighlight, false);
-      });
-      
-      function highlight(e) {
-        dropZone.classList.add('drag-over');
-      }
-      
-      function unhighlight(e) {
-        dropZone.classList.remove('drag-over');
-      }
-      
-      dropZone.addEventListener('drop', handleDrop, false);
-      
-      function handleDrop(e) {
-        const dt = e.dataTransfer;
-        const files = dt.files;
-        handleFiles(files);
-      }
-    }
-    
-    // จัดการการอัปโหลดไฟล์
-    document.getElementById('fileInput').addEventListener('change', (e) => {
-      handleFiles(e.target.files);
-      e.target.value = ''; // รีเซ็ตอินพุตไฟล์
-    });
-    
-    // จัดการไฟล์
-    function handleFiles(files) {
-      const fileArray = Array.from(files);
-      
-      for (let file of fileArray) {
-        // ตรวจสอบจำนวนไฟล์
-        if (uploadedFiles.length >= MAX_FILES) {
-          showError('เกินจำนวนไฟล์ที่อนุญาต', `คุณสามารถอัปโหลดได้สูงสุด ${MAX_FILES} ไฟล์`);
-          break;
-        }
-        
-        // ตรวจสอบขนาดไฟล์
-        if (file.size > MAX_FILE_SIZE) {
-          showError('ไฟล์มีขนาดใหญ่เกินไป', `ไฟล์ "${file.name}" มีขนาด ${formatFileSize(file.size)} เกินกว่า 10MB ที่อนุญาต`);
-          continue;
-        }
-        
-        // ตรวจสอบไฟล์ซ้ำ
-        if (uploadedFiles.some(f => f.name === file.name && f.size === file.size)) {
-          showError('มีไฟล์ซ้ำ', `ไฟล์ "${file.name}" ถูกเลือกแล้ว`);
-          continue;
-        }
-        
-        uploadedFiles.push(file);
-        renderFilePreview(file);
-      }
-      
-      updateFileCounter();
-    }
-    
-    // แสดงตัวอย่างไฟล์
-    function renderFilePreview(file) {
-      const fileId = `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const fileSize = formatFileSize(file.size);
-      const fileIcon = getFileIcon(file.type);
-      
-      const preview = document.createElement('div');
-      preview.className = 'file-card bg-gray-50 rounded-lg p-3 border border-gray-200';
-      preview.id = fileId;
-      preview.innerHTML = `
-        <div class="flex items-center">
-          <div class="bg-gradient-to-r from-primary to-accent p-2 rounded-lg mr-3 text-white">
-            <i class="fas ${fileIcon} text-lg"></i>
-          </div>
-          <div class="flex-1 min-w-0">
-            <p class="font-medium text-gray-800 truncate" title="${file.name}">${file.name}</p>
-            <p class="text-xs text-gray-500">${fileSize}</p>
-          </div>
-          <button type="button" class="text-red-500 hover:text-red-700 ml-2 p-1 rounded-full hover:bg-red-50 transition-colors" onclick="removeFile('${fileId}', '${file.name}')">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-      `;
-      
-      document.getElementById('filePreview').appendChild(preview);
-    }
-    
-    // ลบไฟล์
-    window.removeFile = function(fileId, fileName) {
-      uploadedFiles = uploadedFiles.filter(file => file.name !== fileName);
-      document.getElementById(fileId).remove();
-      updateFileCounter();
-    };
-    
-    // อัปเดตตัวนับไฟล์
-    function updateFileCounter() {
-      const counter = document.getElementById('fileCounter');
-      const count = document.getElementById('fileCount');
-      
-      count.textContent = uploadedFiles.length;
-      
-      if (uploadedFiles.length > 0) {
-        counter.classList.remove('hidden');
-      } else {
-        counter.classList.add('hidden');
-      }
-    }
-    
     // จัดการการส่งฟอร์ม
-    document.getElementById('registrationForm').addEventListener('submit', async (e) => {
+    document.getElementById('registrationForm').addEventListener('submit', (e) => {
       e.preventDefault();
       
       // ตรวจสอบความถูกต้องของข้อมูล
       const name = document.getElementById('name').value.trim();
       const email = document.getElementById('email').value.trim();
       const phone = document.getElementById('phone').value.trim();
+      const userId = document.getElementById('userId').value;
       
       if (!name) {
         showError('กรุณากรอกชื่อ', 'ชื่อ-นามสกุลเป็นข้อมูลที่จำเป็น');
@@ -623,109 +411,49 @@
       
       // แสดงตัวโหลด
       document.getElementById('loadingIndicator').classList.remove('hidden');
+      document.getElementById('submitBtn').innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> กำลังบันทึกข้อมูล...';
       
-      // ข้อมูลผู้ใช้
-      const userData = {
-        userId: document.getElementById('userId').value,
-        name: name,
-        email: email,
-        phone: phone,
-        timestamp: new Date().toISOString()
-      };
+      // ส่งข้อมูลฟอร์ม
+      const form = document.getElementById('registrationForm');
+      const formData = new FormData(form);
       
-      try {
-        // เตรียมไฟล์สำหรับอัปโหลด
-        const preparedFiles = await prepareFilesForUpload();
+      // URL ของ Google Apps Script (ต้องเปลี่ยนเป็น URL ของคุณ)
+      const scriptUrl = 'https://script.google.com/macros/s/AKfycbwpjzb0BRFJrSL0YZwcrIgse5uNbdDoJ5GaEWxbX8HhPTg1aHEeaJgBVURHbVrahUa3/exec';
+      
+      fetch(scriptUrl, {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.text())
+      .then(data => {
+        // แสดงผลลัพธ์
+        document.querySelector("#msg").innerHTML = data;
         
-        // ส่งข้อมูลไปยัง Google Apps Script
-        const response = await fetchWithTimeout('https://script.google.com/macros/s/AKfycbwpjzb0BRFJrSL0YZwcrIgse5uNbdDoJ5GaEWxbX8HhPTg1aHEeaJgBVURHbVrahUa3/exec', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'register',
-            userData: userData,
-            files: preparedFiles
-          })
-        });
-        
-        const result = await response.json();
-        
-        if (result.status === 'success') {
+        if(data === 'Success') {
           // แสดงหน้าสำเร็จ
-          showSuccessScreen(userData);
-          
-          // ส่งข้อความผ่าน LINE
-          await sendLineMessage(userData);
+          showSuccessScreen({
+            name: name,
+            email: email,
+            phone: phone,
+            userId: userId
+          });
           
           // รีเซ็ตฟอร์ม
           resetForm();
         } else {
-          throw new Error(result.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+          throw new Error('บันทึกข้อมูลไม่สำเร็จ');
         }
-      } catch (error) {
+      })
+      .catch(error => {
         console.error('Registration Error:', error);
         showError('บันทึกข้อมูลไม่สำเร็จ', error.message);
-      } finally {
+      })
+      .finally(() => {
         // ซ่อนตัวโหลด
         document.getElementById('loadingIndicator').classList.add('hidden');
-      }
-    });
-    
-    // เตรียมไฟล์สำหรับอัปโหลด
-    async function prepareFilesForUpload() {
-      if (uploadedFiles.length === 0) return [];
-      
-      const filePromises = uploadedFiles.map((file, index) => {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            try {
-              resolve({
-                fileName: file.name,
-                mimeType: file.type,
-                size: file.size,
-                data: e.target.result.split(',')[1], // ลบ data: prefix
-                index: index
-              });
-            } catch (error) {
-              reject(error);
-            }
-          };
-          reader.onerror = () => reject(new Error(`ไม่สามารถอ่านไฟล์ ${file.name} ได้`));
-          reader.readAsDataURL(file);
-        });
+        document.getElementById('submitBtn').innerHTML = '<i class="fas fa-paper-plane mr-2"></i> ส่งแบบฟอร์ม';
       });
-      
-      try {
-        return await Promise.all(filePromises);
-      } catch (error) {
-        throw new Error('เกิดข้อผิดพลาดในการประมวลผลไฟล์: ' + error.message);
-      }
-    }
-    
-    // ส่งข้อความผ่าน LINE
-    async function sendLineMessage(userData) {
-      if (!liff.isInClient()) {
-        console.log('Not in LINE client, skipping message send');
-        return;
-      }
-      
-      try {
-        const message = `✅ ลงทะเบียนสำเร็จ!\n\n📝 ข้อมูลที่ลงทะเบียน:\n👤 ชื่อ: ${userData.name}\n📧 อีเมล: ${userData.email}\n📱 โทรศัพท์: ${userData.phone}\n📎 จำนวนไฟล์: ${uploadedFiles.length} ไฟล์\n\n⏰ เวลา: ${new Date().toLocaleString('th-TH')}`;
-        
-        await liff.sendMessages([
-          {
-            type: 'text',
-            text: message
-          }
-        ]);
-        
-        console.log('LINE message sent successfully');
-      } catch (error) {
-        console.error('Failed to send LINE message:', error);
-        // ไม่แสดง error ให้ผู้ใช้เห็น เพราะการส่งข้อความไม่ใช่ฟีเจอร์หลัก
-      }
-    }
+    });
     
     // แสดงหน้าสำเร็จ
     function showSuccessScreen(userData) {
@@ -733,7 +461,6 @@
       document.getElementById('successName').innerHTML = `<i class="fas fa-user text-primary mr-2"></i> <span class="font-medium">${userData.name}</span>`;
       document.getElementById('successEmail').innerHTML = `<i class="fas fa-envelope text-primary mr-2"></i> <span class="font-medium">${userData.email}</span>`;
       document.getElementById('successPhone').innerHTML = `<i class="fas fa-phone text-primary mr-2"></i> <span class="font-medium">${userData.phone}</span>`;
-      document.getElementById('successFiles').innerHTML = `<i class="fas fa-file text-primary mr-2"></i> <span class="font-medium">${uploadedFiles.length} ไฟล์</span>`;
       
       // แสดงหน้าสำเร็จและซ่อนฟอร์ม
       document.getElementById('formContainer').classList.add('hidden');
@@ -745,11 +472,6 @@
     
     // รีเซ็ตฟอร์ม
     function resetForm() {
-      // เคลียร์ไฟล์
-      uploadedFiles = [];
-      document.getElementById('filePreview').innerHTML = '';
-      updateFileCounter();
-      
       // ซ่อนปุ่มแก้ไข
       document.getElementById('editBtn').classList.add('hidden');
     }
@@ -824,35 +546,10 @@
       }
     });
     
-    // ฟังก์ชันจัดรูปแบบขนาดไฟล์
-    function formatFileSize(bytes) {
-      if (bytes === 0) return '0 Bytes';
-      
-      const k = 1024;
-      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-      const i = Math.floor(Math.log(bytes) / Math.log(k));
-      
-      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    }
-    
     // ฟังก์ชันตรวจสอบอีเมล
     function isValidEmail(email) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       return emailRegex.test(email);
-    }
-    
-    // ฟังก์ชันเลือกไอคอนไฟล์
-    function getFileIcon(mimeType) {
-      if (mimeType.startsWith('image/')) return 'fa-image';
-      if (mimeType.startsWith('video/')) return 'fa-video';
-      if (mimeType.startsWith('audio/')) return 'fa-music';
-      if (mimeType.includes('pdf')) return 'fa-file-pdf';
-      if (mimeType.includes('word') || mimeType.includes('document')) return 'fa-file-word';
-      if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return 'fa-file-excel';
-      if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) return 'fa-file-powerpoint';
-      if (mimeType.includes('zip') || mimeType.includes('rar') || mimeType.includes('archive')) return 'fa-file-archive';
-      if (mimeType.includes('text/')) return 'fa-file-alt';
-      return 'fa-file';
     }
     
     // ฟังก์ชัน fetch with timeout
@@ -865,49 +562,10 @@
       ]);
     }
     
-    // จัดการข้อผิดพลาดแบบ Global
-    window.addEventListener('error', (event) => {
-      console.error('Global error:', event.error);
-      showError('เกิดข้อผิดพลาดระบบ', 'กรุณารีเฟรชหน้าและลองใหม่อีกครั้ง');
-    });
-    
-    // จัดการ Promise rejection ที่ไม่ได้จัดการ
-    window.addEventListener('unhandledrejection', (event) => {
-      console.error('Unhandled promise rejection:', event.reason);
-      event.preventDefault();
-    });
-    
     // เริ่มต้นแอปพลิเคชัน
     window.addEventListener('DOMContentLoaded', () => {
       console.log('DOM loaded, initializing...');
-      setupDragAndDrop();
       initializeLiff();
-    });
-    
-    // ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต
-    window.addEventListener('online', () => {
-      console.log('Internet connection restored');
-      document.getElementById('errorContainer').classList.add('hidden');
-    });
-    
-    window.addEventListener('offline', () => {
-      console.log('Internet connection lost');
-      showError('ไม่มีการเชื่อมต่ออินเทอร์เน็ต', 'กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต');
-    });
-    
-    // ป้องกันการส่งฟอร์มซ้ำ
-    let isSubmitting = false;
-    document.getElementById('registrationForm').addEventListener('submit', (e) => {
-      if (isSubmitting) {
-        e.preventDefault();
-        return false;
-      }
-      isSubmitting = true;
-      
-      // รีเซ็ตสถานะหลังจาง 5 วินาที
-      setTimeout(() => {
-        isSubmitting = false;
-      }, 5000);
     });
   </script>
 </body>
