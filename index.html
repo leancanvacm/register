@@ -89,6 +89,11 @@
       margin-bottom: 1.5rem;
       animation: fadeIn 0.3s ease;
     }
+
+    .drag-over {
+      border-color: #3b82f6 !important;
+      background-color: #eff6ff !important;
+    }
   </style>
 </head>
 <body class="bg-gray-50">
@@ -149,7 +154,7 @@
           <!-- Name -->
           <div class="mb-6">
             <label class="block text-gray-700 text-sm font-bold mb-2" for="name">
-              <i class="fas fa-user text-primary mr-1"></i> ชื่อ-นามสกุล
+              <i class="fas fa-user text-primary mr-1"></i> ชื่อ-นามสกุล <span class="text-red-500">*</span>
             </label>
             <div class="relative">
               <input class="w-full py-3 px-4 pl-11 text-gray-700 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors" 
@@ -163,7 +168,7 @@
           <!-- Email -->
           <div class="mb-6">
             <label class="block text-gray-700 text-sm font-bold mb-2" for="email">
-              <i class="fas fa-envelope text-primary mr-1"></i> อีเมล
+              <i class="fas fa-envelope text-primary mr-1"></i> อีเมล <span class="text-red-500">*</span>
             </label>
             <div class="relative">
               <input class="w-full py-3 px-4 pl-11 text-gray-700 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors" 
@@ -177,7 +182,7 @@
           <!-- Phone -->
           <div class="mb-6">
             <label class="block text-gray-700 text-sm font-bold mb-2" for="phone">
-              <i class="fas fa-phone text-primary mr-1"></i> เบอร์โทรศัพท์
+              <i class="fas fa-phone text-primary mr-1"></i> เบอร์โทรศัพท์ <span class="text-red-500">*</span>
             </label>
             <div class="relative">
               <input class="w-full py-3 px-4 pl-11 text-gray-700 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors" 
@@ -195,11 +200,11 @@
             </label>
             
             <div class="flex items-center justify-center w-full">
-              <label for="fileInput" class="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 border-gray-300 hover:border-primary transition-colors">
+              <label id="dropZone" for="fileInput" class="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 border-gray-300 hover:border-primary transition-colors">
                 <div class="flex flex-col items-center justify-center pt-5 pb-6">
                   <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-2"></i>
                   <p class="mb-2 text-sm text-gray-500">คลิกเพื่ออัปโหลด หรือลากไฟล์มาวางที่นี่</p>
-                  <p class="text-xs text-gray-500">รองรับไฟล์ทุกประเภท (สูงสุด 5 ไฟล์)</p>
+                  <p class="text-xs text-gray-500">รองรับไฟล์ทุกประเภท (สูงสุด 5 ไฟล์, แต่ละไฟล์ไม่เกิน 10MB)</p>
                 </div>
                 <input id="fileInput" type="file" class="hidden" multiple>
               </label>
@@ -207,15 +212,20 @@
             
             <!-- File Preview -->
             <div id="filePreview" class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+            
+            <!-- File Counter -->
+            <div id="fileCounter" class="mt-2 text-sm text-gray-600 hidden">
+              ไฟล์ที่เลือก: <span id="fileCount">0</span>/<span id="maxFiles">5</span>
+            </div>
           </div>
           
           <!-- Action Buttons -->
           <div class="flex flex-col sm:flex-row gap-3">
-            <button type="submit" id="submitBtn" class="flex-1 bg-gradient-to-r from-primary to-accent hover:from-primary-dark hover:to-accent-dark text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center">
+            <button type="submit" id="submitBtn" class="flex-1 bg-gradient-to-r from-primary to-accent hover:from-blue-600 hover:to-purple-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center">
               <i class="fas fa-paper-plane mr-2"></i> ส่งแบบฟอร์ม
             </button>
             
-            <button type="button" id="editBtn" class="flex-1 bg-gradient-to-r from-secondary to-green-500 hover:from-secondary-dark hover:to-green-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center hidden">
+            <button type="button" id="editBtn" class="flex-1 bg-gradient-to-r from-secondary to-green-500 hover:from-green-600 hover:to-green-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center hidden">
               <i class="fas fa-edit mr-2"></i> แก้ไขข้อมูล
             </button>
           </div>
@@ -241,17 +251,17 @@
       
       <div class="mb-6 p-4 bg-blue-50 rounded-lg text-left">
         <h3 class="font-bold text-gray-700 mb-2">ข้อมูลที่ลงทะเบียน:</h3>
-        <p id="successName" class="text-gray-600"><i class="fas fa-user text-primary mr-2"></i> <span class="font-medium">-</span></p>
-        <p id="successEmail" class="text-gray-600"><i class="fas fa-envelope text-primary mr-2"></i> <span class="font-medium">-</span></p>
-        <p id="successPhone" class="text-gray-600"><i class="fas fa-phone text-primary mr-2"></i> <span class="font-medium">-</span></p>
+        <p id="successName" class="text-gray-600 mb-1"><i class="fas fa-user text-primary mr-2"></i> <span class="font-medium">-</span></p>
+        <p id="successEmail" class="text-gray-600 mb-1"><i class="fas fa-envelope text-primary mr-2"></i> <span class="font-medium">-</span></p>
+        <p id="successPhone" class="text-gray-600 mb-1"><i class="fas fa-phone text-primary mr-2"></i> <span class="font-medium">-</span></p>
         <p id="successFiles" class="text-gray-600"><i class="fas fa-file text-primary mr-2"></i> <span class="font-medium">0 ไฟล์</span></p>
       </div>
       
       <div class="flex flex-col sm:flex-row gap-3 justify-center">
-        <button id="closeBtn" class="bg-gradient-to-r from-primary to-accent hover:from-primary-dark hover:to-accent-dark text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300">
+        <button id="closeBtn" class="bg-gradient-to-r from-primary to-accent hover:from-blue-600 hover:to-purple-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300">
           <i class="fas fa-times mr-2"></i> ปิดหน้าต่าง
         </button>
-        <button id="editAfterBtn" class="bg-gradient-to-r from-secondary to-green-500 hover:from-secondary-dark hover:to-green-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300">
+        <button id="editAfterBtn" class="bg-gradient-to-r from-secondary to-green-500 hover:from-green-600 hover:to-green-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300">
           <i class="fas fa-edit mr-2"></i> แก้ไขข้อมูล
         </button>
       </div>
@@ -267,6 +277,7 @@
     // ตัวแปรเก็บไฟล์ที่อัปโหลด
     let uploadedFiles = [];
     const MAX_FILES = 5;
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
     
     // เริ่มต้น LIFF App
     async function initializeLiff() {
@@ -277,8 +288,10 @@
           withLoginOnExternalBrowser: true
         });
         
+        console.log('LIFF initialized successfully');
+        
         // แสดงสถานะการล็อกอิน
-        updateLoginStatus();
+        await updateLoginStatus();
         
       } catch (error) {
         console.error('LIFF Initialization Error:', error);
@@ -292,12 +305,14 @@
         // แสดงปุ่มล็อกอิน
         document.getElementById('loginContainer').classList.remove('hidden');
         document.getElementById('formContainer').classList.add('hidden');
+        document.getElementById('successContainer').classList.add('hidden');
         return;
       }
       
       try {
         // ดึงโปรไฟล์ LINE
         const profile = await liff.getProfile();
+        console.log('User profile:', profile);
         
         // แสดงข้อมูลโปรไฟล์ LINE
         document.getElementById('profilePicture').src = profile.pictureUrl || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
@@ -308,31 +323,31 @@
         const idToken = liff.getIDToken();
         let userEmail = '';
         if (idToken) {
-          const decodedToken = liff.getDecodedIDToken();
-          userEmail = decodedToken?.email || '';
+          try {
+            const decodedToken = liff.getDecodedIDToken();
+            userEmail = decodedToken?.email || '';
+          } catch (e) {
+            console.log('No email in ID token');
+          }
         }
         
         // แสดง email ในส่วนโปรไฟล์
         if (userEmail) {
           document.getElementById('lineEmail').textContent = userEmail;
-        } else {
-          document.getElementById('lineEmail').textContent = 'ไม่พบอีเมลในโปรไฟล์ LINE';
-        }
-        
-        // เติม email ในช่องอีเมล (ถ้ามี)
-        if (userEmail) {
           document.getElementById('email').value = userEmail;
-          // ตั้งค่าเป็น readonly ถ้าได้ email มาแล้ว
           document.getElementById('email').readOnly = true;
           document.getElementById('email').classList.add('bg-gray-100', 'cursor-not-allowed');
+        } else {
+          document.getElementById('lineEmail').textContent = 'ไม่พบอีเมลในโปรไฟล์ LINE';
         }
         
         // แสดงฟอร์มและซ่อนปุ่มล็อกอิน
         document.getElementById('loginContainer').classList.add('hidden');
         document.getElementById('formContainer').classList.remove('hidden');
+        document.getElementById('successContainer').classList.add('hidden');
         
         // ตรวจสอบว่าผู้ใช้เคยลงทะเบียนแล้วหรือไม่
-        checkExistingRegistration(profile.userId);
+        await checkExistingRegistration(profile.userId);
         
       } catch (error) {
         console.error('Profile Error:', error);
@@ -343,7 +358,6 @@
     // ตรวจสอบการลงทะเบียนที่มีอยู่
     async function checkExistingRegistration(userId) {
       try {
-        // เรียก API ไปยัง Google Apps Script
         const response = await fetchWithTimeout('https://script.google.com/macros/s/AKfycbwpjzb0BRFJrSL0YZwcrIgse5uNbdDoJ5GaEWxbX8HhPTg1aHEeaJgBVURHbVrahUa3/exec', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -358,30 +372,29 @@
         if (data.status === 'success' && data.userData) {
           // แสดงข้อมูลที่มีอยู่
           document.getElementById('name').value = data.userData.name || '';
-          document.getElementById('email').value = data.userData.email || '';
+          if (!document.getElementById('email').readOnly) {
+            document.getElementById('email').value = data.userData.email || '';
+          }
           document.getElementById('phone').value = data.userData.phone || '';
           
           // แสดงปุ่มแก้ไข
           document.getElementById('editBtn').classList.remove('hidden');
         }
       } catch (error) {
-        console.log('ไม่พบข้อมูลการลงทะเบียน', error);
+        console.log('ไม่พบข้อมูลการลงทะเบียน หรือ', error.message);
       }
     }
     
     // จัดการการล็อกอิน
     document.getElementById('loginButton').addEventListener('click', async () => {
       try {
-        // แสดงตัวโหลด
         document.getElementById('loadingIndicator').classList.remove('hidden');
         
-        // ล็อกอินพร้อมขอสิทธิ์ profile และ email
-        await liff.login({ scope: 'profile email' });
+        if (!liff.isLoggedIn()) {
+          await liff.login({ scope: 'profile email' });
+        }
         
-        // อัปเดตสถานะการล็อกอิน
         await updateLoginStatus();
-        
-        // ซ่อนตัวโหลด
         document.getElementById('loadingIndicator').classList.add('hidden');
       } catch (error) {
         console.error('Login Error:', error);
@@ -390,32 +403,85 @@
       }
     });
     
-    // จัดการการอัปโหลดไฟล์
-    document.getElementById('fileInput').addEventListener('change', (e) => {
-      const files = Array.from(e.target.files);
+    // Setup drag and drop
+    function setupDragAndDrop() {
+      const dropZone = document.getElementById('dropZone');
       
-      // ตรวจสอบจำนวนไฟล์
-      if (files.length + uploadedFiles.length > MAX_FILES) {
-        showError('เกินจำนวนไฟล์ที่อนุญาต', `คุณสามารถอัปโหลดได้สูงสุด ${MAX_FILES} ไฟล์`);
-        return;
-      }
-      
-      // เพิ่มไฟล์ใหม่
-      files.forEach(file => {
-        if (uploadedFiles.length < MAX_FILES) {
-          uploadedFiles.push(file);
-          renderFilePreview(file);
-        }
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
       });
       
-      // รีเซ็ตอินพุตไฟล์
-      e.target.value = '';
+      function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, highlight, false);
+      });
+      
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, unhighlight, false);
+      });
+      
+      function highlight(e) {
+        dropZone.classList.add('drag-over');
+      }
+      
+      function unhighlight(e) {
+        dropZone.classList.remove('drag-over');
+      }
+      
+      dropZone.addEventListener('drop', handleDrop, false);
+      
+      function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        handleFiles(files);
+      }
+    }
+    
+    // จัดการการอัปโหลดไฟล์
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+      handleFiles(e.target.files);
+      e.target.value = ''; // รีเซ็ตอินพุตไฟล์
     });
+    
+    // จัดการไฟล์
+    function handleFiles(files) {
+      const fileArray = Array.from(files);
+      
+      for (let file of fileArray) {
+        // ตรวจสอบจำนวนไฟล์
+        if (uploadedFiles.length >= MAX_FILES) {
+          showError('เกินจำนวนไฟล์ที่อนุญาต', `คุณสามารถอัปโหลดได้สูงสุด ${MAX_FILES} ไฟล์`);
+          break;
+        }
+        
+        // ตรวจสอบขนาดไฟล์
+        if (file.size > MAX_FILE_SIZE) {
+          showError('ไฟล์มีขนาดใหญ่เกินไป', `ไฟล์ "${file.name}" มีขนาด ${formatFileSize(file.size)} เกินกว่า 10MB ที่อนุญาต`);
+          continue;
+        }
+        
+        // ตรวจสอบไฟล์ซ้ำ
+        if (uploadedFiles.some(f => f.name === file.name && f.size === file.size)) {
+          showError('มีไฟล์ซ้ำ', `ไฟล์ "${file.name}" ถูกเลือกแล้ว`);
+          continue;
+        }
+        
+        uploadedFiles.push(file);
+        renderFilePreview(file);
+      }
+      
+      updateFileCounter();
+    }
     
     // แสดงตัวอย่างไฟล์
     function renderFilePreview(file) {
-      const fileId = `file-${Date.now()}-${file.name.replace(/\s/g, '-')}`;
+      const fileId = `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const fileSize = formatFileSize(file.size);
+      const fileIcon = getFileIcon(file.type);
       
       const preview = document.createElement('div');
       preview.className = 'file-card bg-gray-50 rounded-lg p-3 border border-gray-200';
@@ -423,13 +489,13 @@
       preview.innerHTML = `
         <div class="flex items-center">
           <div class="bg-gradient-to-r from-primary to-accent p-2 rounded-lg mr-3 text-white">
-            <i class="fas fa-file text-lg"></i>
+            <i class="fas ${fileIcon} text-lg"></i>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="font-medium text-gray-800 truncate">${file.name}</p>
+            <p class="font-medium text-gray-800 truncate" title="${file.name}">${file.name}</p>
             <p class="text-xs text-gray-500">${fileSize}</p>
           </div>
-          <button type="button" class="text-red-500 hover:text-red-700 ml-2" onclick="removeFile('${fileId}')">
+          <button type="button" class="text-red-500 hover:text-red-700 ml-2 p-1 rounded-full hover:bg-red-50 transition-colors" onclick="removeFile('${fileId}', '${file.name}')">
             <i class="fas fa-times"></i>
           </button>
         </div>
@@ -439,13 +505,25 @@
     }
     
     // ลบไฟล์
-    window.removeFile = function(fileId) {
-      const preview = document.getElementById(fileId);
-      const fileName = preview.querySelector('.truncate').textContent;
-      
+    window.removeFile = function(fileId, fileName) {
       uploadedFiles = uploadedFiles.filter(file => file.name !== fileName);
-      preview.remove();
+      document.getElementById(fileId).remove();
+      updateFileCounter();
     };
+    
+    // อัปเดตตัวนับไฟล์
+    function updateFileCounter() {
+      const counter = document.getElementById('fileCounter');
+      const count = document.getElementById('fileCount');
+      
+      count.textContent = uploadedFiles.length;
+      
+      if (uploadedFiles.length > 0) {
+        counter.classList.remove('hidden');
+      } else {
+        counter.classList.add('hidden');
+      }
+    }
     
     // จัดการการส่งฟอร์ม
     document.getElementById('registrationForm').addEventListener('submit', async (e) => {
@@ -458,19 +536,29 @@
       
       if (!name) {
         showError('กรุณากรอกชื่อ', 'ชื่อ-นามสกุลเป็นข้อมูลที่จำเป็น');
+        document.getElementById('name').focus();
         return;
       }
       
       if (!email) {
         showError('กรุณากรอกอีเมล', 'อีเมลเป็นข้อมูลที่จำเป็น');
+        document.getElementById('email').focus();
+        return;
+      }
+      
+      if (!isValidEmail(email)) {
+        showError('รูปแบบอีเมลไม่ถูกต้อง', 'กรุณากรอกอีเมลให้ถูกต้อง');
+        document.getElementById('email').focus();
         return;
       }
       
       if (!phone) {
         showError('กรุณากรอกเบอร์โทรศัพท์', 'เบอร์โทรศัพท์เป็นข้อมูลที่จำเป็น');
+        document.getElementById('phone').focus();
         return;
       } else if (!/^\d{10}$/.test(phone)) {
         showError('รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง', 'กรุณากรอกเบอร์โทรศัพท์ 10 หลัก');
+        document.getElementById('phone').focus();
         return;
       }
       
@@ -482,18 +570,22 @@
         userId: document.getElementById('userId').value,
         name: name,
         email: email,
-        phone: phone
+        phone: phone,
+        timestamp: new Date().toISOString()
       };
       
       try {
-        // ส่งข้อมูลไปยัง Google Apps Script - ใช้ URL จริงของคุณ
+        // เตรียมไฟล์สำหรับอัปโหลด
+        const preparedFiles = await prepareFilesForUpload();
+        
+        // ส่งข้อมูลไปยัง Google Apps Script
         const response = await fetchWithTimeout('https://script.google.com/macros/s/AKfycbwpjzb0BRFJrSL0YZwcrIgse5uNbdDoJ5GaEWxbX8HhPTg1aHEeaJgBVURHbVrahUa3/exec', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'register',
             userData: userData,
-            files: await prepareFilesForUpload()
+            files: preparedFiles
           })
         });
         
@@ -505,6 +597,9 @@
           
           // ส่งข้อความผ่าน LINE
           await sendLineMessage(userData);
+          
+          // รีเซ็ตฟอร์ม
+          resetForm();
         } else {
           throw new Error(result.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
         }
@@ -519,53 +614,57 @@
     
     // เตรียมไฟล์สำหรับอัปโหลด
     async function prepareFilesForUpload() {
-      const filePromises = uploadedFiles.map(file => {
-        return new Promise((resolve) => {
+      if (uploadedFiles.length === 0) return [];
+      
+      const filePromises = uploadedFiles.map((file, index) => {
+        return new Promise((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = (e) => {
-            resolve({
-              fileName: file.name,
-              mimeType: file.type,
-              size: file.size,
-              data: e.target.result.split(',')[1] // ลบ data: prefix
-            });
+            try {
+              resolve({
+                fileName: file.name,
+                mimeType: file.type,
+                size: file.size,
+                data: e.target.result.split(',')[1], // ลบ data: prefix
+                index: index
+              });
+            } catch (error) {
+              reject(error);
+            }
           };
+          reader.onerror = () => reject(new Error(`ไม่สามารถอ่านไฟล์ ${file.name} ได้`));
           reader.readAsDataURL(file);
         });
       });
       
-      return Promise.all(filePromises);
+      try {
+        return await Promise.all(filePromises);
+      } catch (error) {
+        throw new Error('เกิดข้อผิดพลาดในการประมวลผลไฟล์: ' + error.message);
+      }
     }
     
     // ส่งข้อความผ่าน LINE
     async function sendLineMessage(userData) {
+      if (!liff.isInClient()) {
+        console.log('Not in LINE client, skipping message send');
+        return;
+      }
+      
       try {
-        const message = `✅ ลงทะเบียนสำเร็จ!\n\nชื่อ: ${userData.name}\nอีเมล: ${userData.email}\nโทรศัพท์: ${userData.phone}\nจำนวนไฟล์: ${uploadedFiles.length} ไฟล์`;
+        const message = `✅ ลงทะเบียนสำเร็จ!\n\n📝 ข้อมูลที่ลงทะเบียน:\n👤 ชื่อ: ${userData.name}\n📧 อีเมล: ${userData.email}\n📱 โทรศัพท์: ${userData.phone}\n📎 จำนวนไฟล์: ${uploadedFiles.length} ไฟล์\n\n⏰ เวลา: ${new Date().toLocaleString('th-TH')}`;
         
         await liff.sendMessages([
           {
             type: 'text',
             text: message
-          },
-          {
-            type: 'text',
-            text: 'คุณสามารถแก้ไขข้อมูลได้โดยคลิกที่ปุ่มด้านล่าง',
-            quickReply: {
-              items: [
-                {
-                  type: 'action',
-                  action: {
-                    type: 'uri',
-                    label: 'แก้ไขข้อมูล',
-                    uri: liff.permanentLink.createUrl()
-                  }
-                }
-              ]
-            }
           }
         ]);
+        
+        console.log('LINE message sent successfully');
       } catch (error) {
         console.error('Failed to send LINE message:', error);
+        // ไม่แสดง error ให้ผู้ใช้เห็น เพราะการส่งข้อความไม่ใช่ฟีเจอร์หลัก
       }
     }
     
@@ -580,6 +679,20 @@
       // แสดงหน้าสำเร็จและซ่อนฟอร์ม
       document.getElementById('formContainer').classList.add('hidden');
       document.getElementById('successContainer').classList.remove('hidden');
+      
+      // เลื่อนขึ้นด้านบน
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    
+    // รีเซ็ตฟอร์ม
+    function resetForm() {
+      // เคลียร์ไฟล์
+      uploadedFiles = [];
+      document.getElementById('filePreview').innerHTML = '';
+      updateFileCounter();
+      
+      // ซ่อนปุ่มแก้ไข
+      document.getElementById('editBtn').classList.add('hidden');
     }
     
     // แสดงข้อผิดพลาด
@@ -588,27 +701,43 @@
       document.getElementById('errorMessage').textContent = message;
       document.getElementById('errorContainer').classList.remove('hidden');
       
-      // ซ่อนข้อผิดพลาดหลังจาก 5 วินาที
+      // เลื่อนไปที่ error message
+      document.getElementById('errorContainer').scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      });
+      
+      // ซ่อนข้อผิดพลาดหลังจาก 8 วินาที
       setTimeout(() => {
         document.getElementById('errorContainer').classList.add('hidden');
-      }, 5000);
+      }, 8000);
     }
     
     // ปุ่มลองอีกครั้ง
     document.getElementById('retryButton').addEventListener('click', () => {
       document.getElementById('errorContainer').classList.add('hidden');
-      initializeLiff();
+      location.reload(); // รีโหลดหน้าเพื่อเริ่มต้นใหม่
     });
     
     // ปุ่มแก้ไขข้อมูล
     document.getElementById('editBtn').addEventListener('click', () => {
-      // เปิดใช้งานฟิลด์
-      document.getElementById('name').disabled = false;
-      document.getElementById('email').disabled = false;
-      document.getElementById('phone').disabled = false;
+      // เปิดใช้งานฟิลด์ที่ไม่ใช่ readonly
+      const fields = ['name', 'phone'];
+      if (!document.getElementById('email').readOnly) {
+        fields.push('email');
+      }
+      
+      fields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        field.disabled = false;
+        field.classList.remove('bg-gray-100', 'cursor-not-allowed');
+      });
       
       // ซ่อนปุ่มแก้ไข
       document.getElementById('editBtn').classList.add('hidden');
+      
+      // โฟกัสที่ช่องแรก
+      document.getElementById('name').focus();
     });
     
     // ปุ่มแก้ไขข้อมูลจากหน้าสำเร็จ
@@ -616,6 +745,12 @@
       // แสดงฟอร์มและซ่อนหน้าสำเร็จ
       document.getElementById('successContainer').classList.add('hidden');
       document.getElementById('formContainer').classList.remove('hidden');
+      
+      // เลื่อนไปที่ฟอร์ม
+      document.getElementById('formContainer').scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+      });
     });
     
     // ปุ่มปิดหน้าต่าง
@@ -623,7 +758,10 @@
       if (liff.isInClient()) {
         liff.closeWindow();
       } else {
-        alert('คุณสามารถปิดแท็บนี้ได้');
+        // ถ้าเปิดในเบราว์เซอร์ธรรมดา
+        if (confirm('คุณต้องการปิดหน้าต่างนี้หรือไม่?')) {
+          window.close();
+        }
       }
     });
     
@@ -635,21 +773,83 @@
       const sizes = ['Bytes', 'KB', 'MB', 'GB'];
       const i = Math.floor(Math.log(bytes) / Math.log(k));
       
-      return parseFloat((bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i];
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    // ฟังก์ชันตรวจสอบอีเมล
+    function isValidEmail(email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emailRegex.test(email);
+    }
+    
+    // ฟังก์ชันเลือกไอคอนไฟล์
+    function getFileIcon(mimeType) {
+      if (mimeType.startsWith('image/')) return 'fa-image';
+      if (mimeType.startsWith('video/')) return 'fa-video';
+      if (mimeType.startsWith('audio/')) return 'fa-music';
+      if (mimeType.includes('pdf')) return 'fa-file-pdf';
+      if (mimeType.includes('word') || mimeType.includes('document')) return 'fa-file-word';
+      if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return 'fa-file-excel';
+      if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) return 'fa-file-powerpoint';
+      if (mimeType.includes('zip') || mimeType.includes('rar') || mimeType.includes('archive')) return 'fa-file-archive';
+      if (mimeType.includes('text/')) return 'fa-file-alt';
+      return 'fa-file';
     }
     
     // ฟังก์ชัน fetch with timeout
-    function fetchWithTimeout(url, options, timeout = 15000) {
+    function fetchWithTimeout(url, options, timeout = 30000) {
       return Promise.race([
         fetch(url, options),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Request timed out')), timeout)
+          setTimeout(() => reject(new Error('การเชื่อมต่อหมดเวลา กรุณาลองใหม่อีกครั้ง')), timeout)
         )
       ]);
     }
     
+    // จัดการข้อผิดพลาดแบบ Global
+    window.addEventListener('error', (event) => {
+      console.error('Global error:', event.error);
+      showError('เกิดข้อผิดพลาดระบบ', 'กรุณารีเฟรชหน้าและลองใหม่อีกครั้ง');
+    });
+    
+    // จัดการ Promise rejection ที่ไม่ได้จัดการ
+    window.addEventListener('unhandledrejection', (event) => {
+      console.error('Unhandled promise rejection:', event.reason);
+      event.preventDefault();
+    });
+    
     // เริ่มต้นแอปพลิเคชัน
-    window.addEventListener('DOMContentLoaded', initializeLiff);
+    window.addEventListener('DOMContentLoaded', () => {
+      console.log('DOM loaded, initializing...');
+      setupDragAndDrop();
+      initializeLiff();
+    });
+    
+    // ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต
+    window.addEventListener('online', () => {
+      console.log('Internet connection restored');
+      document.getElementById('errorContainer').classList.add('hidden');
+    });
+    
+    window.addEventListener('offline', () => {
+      console.log('Internet connection lost');
+      showError('ไม่มีการเชื่อมต่ออินเทอร์เน็ต', 'กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต');
+    });
+    
+    // ป้องกันการส่งฟอร์มซ้ำ
+    let isSubmitting = false;
+    document.getElementById('registrationForm').addEventListener('submit', (e) => {
+      if (isSubmitting) {
+        e.preventDefault();
+        return false;
+      }
+      isSubmitting = true;
+      
+      // รีเซ็ตสถานะหลังจาง 5 วินาที
+      setTimeout(() => {
+        isSubmitting = false;
+      }, 5000);
+    });
   </script>
 </body>
 </html>
