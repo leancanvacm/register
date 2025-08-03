@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ระบบลงทะเบียน LINE</title>
   
-  <!-- แก้ไข LIFF SDK: ใช้เวอร์ชันล่าสุดแทนเวอร์ชันเฉพาะ -->
-  <script src="https://static.line-scdn.net/liff/edge/versions/2.21.4/sdk.js"></script>
+  <!-- LIFF SDK เวอร์ชันล่าสุด -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -181,7 +181,7 @@
             </label>
             <div class="relative">
               <input class="w-full py-3 px-4 pl-11 text-gray-700 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors" 
-                     id="phone" name="phone" type="tel" placeholder="0812345678" required>
+                     id="phone" name="phone" type="tel" placeholder="0812345678" required pattern="[0-9]{10}">
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <i class="fas fa-phone text-gray-400"></i>
               </div>
@@ -396,7 +396,7 @@
       
       // ตรวจสอบจำนวนไฟล์
       if (files.length + uploadedFiles.length > MAX_FILES) {
-        alert(`⚠️ คุณสามารถอัปโหลดได้สูงสุด ${MAX_FILES} ไฟล์`);
+        showError('เกินจำนวนไฟล์ที่อนุญาต', `คุณสามารถอัปโหลดได้สูงสุด ${MAX_FILES} ไฟล์`);
         return;
       }
       
@@ -451,20 +451,43 @@
     document.getElementById('registrationForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       
+      // ตรวจสอบความถูกต้องของข้อมูล
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      
+      if (!name) {
+        showError('กรุณากรอกชื่อ', 'ชื่อ-นามสกุลเป็นข้อมูลที่จำเป็น');
+        return;
+      }
+      
+      if (!email) {
+        showError('กรุณากรอกอีเมล', 'อีเมลเป็นข้อมูลที่จำเป็น');
+        return;
+      }
+      
+      if (!phone) {
+        showError('กรุณากรอกเบอร์โทรศัพท์', 'เบอร์โทรศัพท์เป็นข้อมูลที่จำเป็น');
+        return;
+      } else if (!/^\d{10}$/.test(phone)) {
+        showError('รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง', 'กรุณากรอกเบอร์โทรศัพท์ 10 หลัก');
+        return;
+      }
+      
       // แสดงตัวโหลด
       document.getElementById('loadingIndicator').classList.remove('hidden');
       
       // ข้อมูลผู้ใช้
       const userData = {
         userId: document.getElementById('userId').value,
-        name: document.getElementById('name').value,
-        email: document.getElementById('email').value,
-        phone: document.getElementById('phone').value
+        name: name,
+        email: email,
+        phone: phone
       };
       
       try {
-        // ส่งข้อมูลไปยัง Google Apps Script (เปลี่ยน APP_ID เป็น ID จริงของคุณ)
-        const response = await fetchWithTimeout('https://script.google.com/macros/s/APP_ID/exec', {
+        // ส่งข้อมูลไปยัง Google Apps Script - ใช้ URL จริงของคุณ
+        const response = await fetchWithTimeout('https://script.google.com/macros/s/AKfycbwpjzb0BRFJrSL0YZwcrIgse5uNbdDoJ5GaEWxbX8HhPTg1aHEeaJgBVURHbVrahUa3/exec', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -487,7 +510,7 @@
         }
       } catch (error) {
         console.error('Registration Error:', error);
-        showError(`บันทึกข้อมูลไม่สำเร็จ`, error.message);
+        showError('บันทึกข้อมูลไม่สำเร็จ', error.message);
       } finally {
         // ซ่อนตัวโหลด
         document.getElementById('loadingIndicator').classList.add('hidden');
@@ -564,6 +587,11 @@
       document.getElementById('errorTitle').textContent = title;
       document.getElementById('errorMessage').textContent = message;
       document.getElementById('errorContainer').classList.remove('hidden');
+      
+      // ซ่อนข้อผิดพลาดหลังจาก 5 วินาที
+      setTimeout(() => {
+        document.getElementById('errorContainer').classList.add('hidden');
+      }, 5000);
     }
     
     // ปุ่มลองอีกครั้ง
@@ -592,7 +620,11 @@
     
     // ปุ่มปิดหน้าต่าง
     document.getElementById('closeBtn').addEventListener('click', () => {
-      liff.closeWindow();
+      if (liff.isInClient()) {
+        liff.closeWindow();
+      } else {
+        alert('คุณสามารถปิดแท็บนี้ได้');
+      }
     });
     
     // ฟังก์ชันจัดรูปแบบขนาดไฟล์
