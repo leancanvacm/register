@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ระบบลงทะเบียน LINE</title>
   
-   <!-- LIFF SDK -->
+  <!-- LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/versions/2.21.4/sdk.js"></script>
   
   <!-- Tailwind CSS -->
@@ -70,6 +70,16 @@
       background-color: #f9fafb;
       cursor: not-allowed;
     }
+    
+    .form-container {
+      max-height: 1000px;
+      transition: max-height 0.5s ease-in-out;
+    }
+    
+    .form-container.hidden {
+      max-height: 0;
+      overflow: hidden;
+    }
   </style>
 </head>
 <body class="bg-gray-50">
@@ -78,7 +88,7 @@
     <div class="text-center mb-8">
       <div id="profileSection" class="flex flex-col items-center">
         <div class="relative mb-4">
-          <img id="profilePicture" class="w-24 h-24 rounded-full profile-pic object-cover" src="" alt="Profile Picture">
+          <img id="profilePicture" class="w-24 h-24 rounded-full profile-pic object-cover bg-gray-200" src="" alt="Profile Picture">
           <div class="absolute bottom-0 right-0 w-6 h-6 bg-primary rounded-full flex items-center justify-center">
             <i class="fas fa-check text-white text-xs"></i>
           </div>
@@ -93,7 +103,7 @@
     </div>
     
     <!-- Registration Form -->
-    <div id="formContainer" class="bg-white rounded-2xl shadow-xl overflow-hidden transition-all duration-500">
+    <div id="formContainer" class="form-container bg-white rounded-2xl shadow-xl overflow-hidden transition-all duration-500">
       <div class="p-6 sm:p-8">
         <form id="registrationForm">
           <!-- User ID (Hidden) -->
@@ -240,7 +250,7 @@
         const profile = await liff.getProfile();
         
         // แสดงข้อมูลโปรไฟล์ LINE
-        document.getElementById('profilePicture').src = profile.pictureUrl || 'https://via.placeholder.com/150';
+        document.getElementById('profilePicture').src = profile.pictureUrl || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
         document.getElementById('lineName').textContent = profile.displayName;
         document.getElementById('userId').value = profile.userId;
         
@@ -278,6 +288,7 @@
     // ตรวจสอบการลงทะเบียนที่มีอยู่
     async function checkExistingRegistration(userId) {
       try {
+        // เรียก API ไปยัง Google Apps Script
         const response = await fetchWithTimeout('https://script.google.com/macros/s/AKfycbwpjzb0BRFJrSL0YZwcrIgse5uNbdDoJ5GaEWxbX8HhPTg1aHEeaJgBVURHbVrahUa3/exec', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
