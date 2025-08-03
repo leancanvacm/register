@@ -94,6 +94,26 @@
       border-color: #3b82f6 !important;
       background-color: #eff6ff !important;
     }
+    
+    /* เพิ่มสไตล์สำหรับมือถือ */
+    @media (max-width: 640px) {
+      .container {
+        padding: 1rem;
+      }
+      
+      .profile-pic {
+        width: 20vw;
+        height: 20vw;
+      }
+      
+      .mobile-full {
+        width: 100%;
+      }
+      
+      .mobile-stack {
+        flex-direction: column;
+      }
+    }
   </style>
 </head>
 <body class="bg-gray-50">
@@ -282,6 +302,9 @@
     // เริ่มต้น LIFF App
     async function initializeLiff() {
       try {
+        // แสดงตัวโหลดระหว่างการเริ่มต้น LIFF
+        document.getElementById('loadingIndicator').classList.remove('hidden');
+        
         // เปลี่ยนเป็น LIFF ID ของคุณ
         await liff.init({ 
           liffId: '1656079273-12vmyKy3', // เปลี่ยนเป็น LIFF ID จริงของคุณ
@@ -290,12 +313,28 @@
         
         console.log('LIFF initialized successfully');
         
+        // ถ้าอยู่ในแอป LINE และยังไม่ได้ล็อกอิน ให้ล็อกอินอัตโนมัติ
+        if (liff.isInClient() && !liff.isLoggedIn()) {
+          console.log('Logging in automatically in LINE app');
+          await liff.login();
+        }
+        
         // แสดงสถานะการล็อกอิน
         await updateLoginStatus();
         
       } catch (error) {
         console.error('LIFF Initialization Error:', error);
-        showError('ไม่สามารถเชื่อมต่อกับ LINE ได้', error.message);
+        
+        // แสดงข้อความข้อผิดพลาดเฉพาะสำหรับมือถือ
+        let errorMsg = 'ไม่สามารถเชื่อมต่อกับ LINE ได้';
+        if (/mobile/i.test(navigator.userAgent)) {
+          errorMsg = 'ไม่สามารถเชื่อมต่อกับ LINE บนมือถือได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต';
+        }
+        
+        showError('เกิดข้อผิดพลาด', errorMsg);
+      } finally {
+        // ซ่อนตัวโหลดหลังจากเริ่มต้นเสร็จสิ้น
+        document.getElementById('loadingIndicator').classList.add('hidden');
       }
     }
     
@@ -310,6 +349,9 @@
       }
       
       try {
+        // แสดงตัวโหลดระหว่างการดึงข้อมูลโปรไฟล์
+        document.getElementById('loadingIndicator').classList.remove('hidden');
+        
         // ดึงโปรไฟล์ LINE
         const profile = await liff.getProfile();
         console.log('User profile:', profile);
@@ -351,7 +393,17 @@
         
       } catch (error) {
         console.error('Profile Error:', error);
-        showError('ไม่สามารถดึงข้อมูลโปรไฟล์ได้', error.message);
+        
+        // แสดงข้อความข้อผิดพลาดเฉพาะสำหรับมือถือ
+        let errorMsg = 'ไม่สามารถดึงข้อมูลโปรไฟล์ได้';
+        if (/mobile/i.test(navigator.userAgent)) {
+          errorMsg = 'ไม่สามารถดึงข้อมูลโปรไฟล์บนมือถือได้ กรุณาตรวจสอบการเชื่อมต่อ';
+        }
+        
+        showError('เกิดข้อผิดพลาด', errorMsg);
+      } finally {
+        // ซ่อนตัวโหลดหลังจากดึงข้อมูลโปรไฟล์เสร็จสิ้น
+        document.getElementById('loadingIndicator').classList.add('hidden');
       }
     }
     
@@ -398,7 +450,14 @@
         document.getElementById('loadingIndicator').classList.add('hidden');
       } catch (error) {
         console.error('Login Error:', error);
-        showError('ไม่สามารถล็อกอินได้', error.message);
+        
+        // แสดงข้อความข้อผิดพลาดเฉพาะสำหรับมือถือ
+        let errorMsg = 'ไม่สามารถล็อกอินได้';
+        if (/mobile/i.test(navigator.userAgent)) {
+          errorMsg = 'ไม่สามารถล็อกอินบนมือถือได้ กรุณาตรวจสอบการเชื่อมต่อ';
+        }
+        
+        showError('เกิดข้อผิดพลาด', errorMsg);
         document.getElementById('loadingIndicator').classList.add('hidden');
       }
     });
