@@ -700,6 +700,16 @@
       submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> กำลังบันทึกข้อมูล...';
       submitBtn.disabled = true;
       
+      // แสดง loading ด้วย SweetAlert2
+      Swal.fire({
+        title: 'กำลังบันทึก...',
+        text: 'กรุณารอสักครู่',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+      
       try {
         // แปลงไฟล์เป็น base64 แบบทีละไฟล์เพื่อลด memory usage
         const base64Files = [];
@@ -726,28 +736,10 @@
           timestamp: new Date().toISOString()
         };
         
-        console.log('Preparing to send form data:', {
-          action: formData.action,
-          userId: formData.userId,
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          filesCount: formData.files.length,
-          totalSize: formData.files.reduce((sum, file) => sum + file.size, 0)
-        });
+        console.log('Preparing to send form data:', formData);
         
-        // URL ของ Google Apps Script
-        const scriptUrl = 'https://script.google.com/macros/s/AKfycbwpjzb0BRFJrSL0YZwcrIgse5uNbdDoJ5GaEWxbX8HhPTg1aHEeaJgBVURHbVrahUa3/exec';
-        
-        // แสดง loading ด้วย SweetAlert2
-        Swal.fire({
-          title: 'กำลังบันทึก...',
-          text: 'กรุณารอสักครู่',
-          allowOutsideClick: false,
-          didOpen: () => {
-            Swal.showLoading();
-          }
-        });
+        // URL ของ Google Apps Script - แก้ไขเป็น URL ของคุณ
+        const scriptUrl = 'https://script.google.com/macros/s/AKfycbxRE0E7_6XhEsJ_T6wuCszrKzomHgy5ZEOoFRNW8l_RdpaDNCEBvHihZ0HnWTINn1Mw/exec';
         
         // ส่งข้อมูลแบบ POST
         const response = await fetchWithTimeout(scriptUrl, {
@@ -759,7 +751,6 @@
         }, 60000); // เพิ่ม timeout เป็น 60 วินาที
         
         console.log('Response status:', response.status);
-        console.log('Response headers:', response.headers);
         
         // ตรวจสอบ HTTP status
         if (!response.ok) {
@@ -768,47 +759,73 @@
           throw new Error(`เซิร์ฟเวอร์ตอบกลับด้วยข้อผิดพลาด (${response.status}): ${response.statusText}`);
         }
         
-        // แปลง response เป็น JSON
-        let data;
+        // แปลง response เป็น text เนื่องจาก GAS คืน text ธรรมดา
+        const responseText = await response.text();
+        console.log('Raw response:', responseText);
+        
+        // พยายามแปลงเป็น JSON ถ้าเป็นไปได้
         try {
-          const responseText = await response.text();
-          console.log('Raw response:', responseText);
-          data = JSON.parse(responseText);
+          const data = JSON.parse(responseText);
+          console.log('Parsed response data:', data);
+          
+          if (data.status === 'success' || responseText.includes('success')) {
+            // ปิด loading และแสดงข้อความสำเร็จ
+            Swal.fire({
+              icon: 'success',
+              title: 'บันทึกสำเร็จ!',
+              text: 'ข้อมูลถูกบันทึกเรียบร้อยแล้ว',
+              timer: 2000,
+              showConfirmButton: false
+            });
+            
+            // แสดงหน้าสำเร็จ
+            showSuccessScreen({
+              name: name,
+              email: email,
+              phone: phone,
+              userId: userId
+            });
+            
+            // รีเซ็ตไฟล์ที่เลือก
+            selectedFiles = [];
+            document.getElementById('filePreview').innerHTML = '';
+            
+            // รีเซ็ตฟอร์ม
+            document.getElementById('registrationForm').reset();
+            document.getElementById('userId').value = userId; // เก็บ userId ไว้
+          } else {
+            throw new Error(data.message || data.error || 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ');
+          }
         } catch (parseError) {
-          console.error('JSON parse error:', parseError);
-          throw new Error('ได้รับข้อมูลที่ไม่ถูกต้องจากเซิร์ฟเวอร์');
-        }
-        
-        console.log('Parsed response data:', data);
-        
-        if (data.status === 'success') {
-          // ปิด loading และแสดงข้อความสำเร็จ
-          Swal.fire({
-            icon: 'success',
-            title: 'บันทึกสำเร็จ!',
-            text: 'ข้อมูลถูกบันทึกเรียบร้อยแล้ว',
-            timer: 2000,
-            showConfirmButton: false
-          });
-          
-          // แสดงหน้าสำเร็จ
-          showSuccessScreen({
-            name: name,
-            email: email,
-            phone: phone,
-            userId: userId
-          });
-          
-          // รีเซ็ตไฟล์ที่เลือก
-          selectedFiles = [];
-          document.getElementById('filePreview').innerHTML = '';
-          
-          // รีเซ็ตฟอร์ม
-          document.getElementById('registrationForm').reset();
-          document.getElementById('userId').value = userId; // เก็บ userId ไว้
-          
-        } else {
-          throw new Error(data.message || data.error || 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ');
+          console.log('Response is not JSON, treating as text');
+          if (responseText.includes('success') || responseText.includes('Image uploaded')) {
+            // ปิด loading และแสดงข้อความสำเร็จ
+            Swal.fire({
+              icon: 'success',
+              title: 'บันทึกสำเร็จ!',
+              text: 'ข้อมูลถูกบันทึกเรียบร้อยแล้ว',
+              timer: 2000,
+              showConfirmButton: false
+            });
+            
+            // แสดงหน้าสำเร็จ
+            showSuccessScreen({
+              name: name,
+              email: email,
+              phone: phone,
+              userId: userId
+            });
+            
+            // รีเซ็ตไฟล์ที่เลือก
+            selectedFiles = [];
+            document.getElementById('filePreview').innerHTML = '';
+            
+            // รีเซ็ตฟอร์ม
+            document.getElementById('registrationForm').reset();
+            document.getElementById('userId').value = userId; // เก็บ userId ไว้
+          } else {
+            throw new Error(responseText || 'ได้รับข้อมูลที่ไม่ถูกต้องจากเซิร์ฟเวอร์');
+          }
         }
       } catch (error) {
         console.error('Registration Error:', error);
